@@ -1,10 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DayPlan, ItineraryEvent } from "../types";
 
-// 獲取 AI Client 的輔助函式
 const getAiClient = () => {
-  // 在 GitHub 部署環境中，這裡會優先嘗試讀取變數
-  const apiKey = process.env.API_KEY || ""; 
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API Key is missing. Please set it in GitHub Secrets.");
+  }
   return new GoogleGenAI({ apiKey });
 };
 
