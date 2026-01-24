@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trip, TripSeason } from '../types';
 
@@ -91,12 +90,12 @@ const AddTripModal: React.FC<AddTripModalProps> = ({ trip, onClose, onSubmit }) 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-black text-stone-300 uppercase tracking-[0.2em] mb-3">Starts</label>
-                <input type="date" className="w-full bg-stone-50 border-none rounded-[1.5rem] px-5 py-5 text-xs font-black text-stone-600"
+                <input type="date" className="w-full bg-stone-50 border-none rounded-[1.5rem] px-3 py-4 text-[11px] font-black text-stone-600 outline-none"
                   value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} required />
               </div>
               <div>
                 <label className="block text-[10px] font-black text-stone-300 uppercase tracking-[0.2em] mb-3">Ends</label>
-                <input type="date" className="w-full bg-stone-50 border-none rounded-[1.5rem] px-5 py-5 text-xs font-black text-stone-600"
+                <input type="date" className="w-full bg-stone-50 border-none rounded-[1.5rem] px-3 py-4 text-[11px] font-black text-stone-600 outline-none"
                   value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} required />
               </div>
             </div>
