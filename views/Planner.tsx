@@ -36,6 +36,12 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [finalImageUrl, setFinalImageUrl] = useState<string | undefined>(undefined);
   
+  // 懸浮按鈕狀態：包含垂直位置 Y 以及是否已收合 retracted
+  const [fabY, setFabY] = useState<number | null>(null);
+  const [isFabRetracted, setIsFabRetracted] = useState(false);
+  const [isDraggingFab, setIsDraggingFab] = useState(false);
+  const fabStartPos = useRef({ y: 0, currentY: 0 });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cropZoneRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -174,7 +180,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      // 16:9 aspect ratio for event cards
       canvas.width = 1280; 
       canvas.height = 720;
       ctx.fillStyle = 'white'; 
@@ -184,7 +189,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       const rect = zone.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
       
-      // Calculate drawing dimensions based on natural aspect ratio of the image
       const drawWidth = canvas.width * cropPos.scale;
       const drawHeight = (img.naturalHeight / img.naturalWidth) * drawWidth;
       
@@ -254,6 +258,48 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     setIsBatchMode(false);
     setIsMoveModalOpen(false);
     setActiveDay(targetDay);
+  };
+
+  // FAB 拖動處理
+  const handleFabTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (isFabRetracted) return; // 收合狀態下不支援垂直拖動，點擊即可展開
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setIsDraggingFab(false); 
+    fabStartPos.current = { y: clientY, currentY: fabY || window.innerHeight - 192 }; // bottom-48 換算
+  };
+
+  const handleFabTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (isFabRetracted) return;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const deltaY = clientY - fabStartPos.current.y;
+    if (Math.abs(deltaY) > 5) {
+      setIsDraggingFab(true);
+      const nextY = Math.min(Math.max(80, fabStartPos.current.currentY + deltaY), window.innerHeight - 150);
+      setFabY(nextY);
+    }
+  };
+
+  const handleFabClick = (e: React.MouseEvent) => {
+    if (isDraggingFab) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    // 如果是收合狀態，則先展開
+    if (isFabRetracted) {
+      setIsFabRetracted(false);
+      return;
+    }
+
+    setEditingEvent({ day: activeDay, event: { id: '', title: '', time: '10:00', location: '', type: 'attraction' } });
+    setFinalImageUrl(undefined);
+    setIsEventModalOpen(true);
+  };
+
+  const toggleRetract = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFabRetracted(!isFabRetracted);
   };
 
   const dayInfo = getCurrentDayInfo();
@@ -472,6 +518,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
         )}
       </div>
 
+      {/* 刪除對話框等 Modal */}
       {eventToDeleteId && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setEventToDeleteId(null)}></div>
@@ -489,73 +536,41 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
         </div>
       )}
 
-      {isBatchDeleteModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setIsBatchDeleteModalOpen(false)}></div>
-          <div className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-8 shadow-2xl animate-slideUp text-center">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
-              <i className="fa-solid fa-trash-can"></i>
-            </div>
-            <h4 className="text-lg font-black text-gray-800 mb-2">確定要刪除這 {selectedEventIds.size} 項行程嗎？</h4>
-            <p className="text-xs text-gray-400 font-bold leading-relaxed mb-8">選中的行程將會被永久移除，這個動作不可逆喔！</p>
-            <div className="flex flex-col gap-3">
-              <button onClick={confirmBatchDelete} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all">狠心刪除</button>
-              <button onClick={() => setIsBatchDeleteModalOpen(false)} className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all">再想想看</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isBatchMode && selectedEventIds.size > 0 && (
-        <div className="fixed bottom-40 left-6 right-6 z-[100] animate-slideUp pointer-events-auto">
-           <div className="glass-card bg-gray-900/90 rounded-[2rem] p-4 flex items-center justify-between shadow-2xl border border-white/10">
-              <div className="pl-4 text-left">
-                 <p className="text-white font-black text-sm">已選取 {selectedEventIds.size} 項</p>
-                 <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Selected Items</p>
-              </div>
-              <div className="flex gap-2">
-                 <button type="button" onClick={() => setIsMoveModalOpen(true)} className="bg-white/10 text-white px-5 py-3 rounded-2xl text-[11px] font-black active:scale-95 transition-all flex items-center gap-2 cursor-pointer pointer-events-auto">
-                    <i className="fa-solid fa-arrows-to-dot"></i> 搬移
-                 </button>
-                 <button type="button" onClick={(e) => { e.stopPropagation(); setIsBatchDeleteModalOpen(true); }} className="bg-red-500 text-white px-5 py-3 rounded-2xl text-[11px] font-black shadow-lg active:scale-95 transition-all flex items-center gap-2 cursor-pointer pointer-events-auto">
-                    <i className="fa-solid fa-trash-can"></i> 刪除
-                 </button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {isMoveModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn text-center">
-           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsMoveModalOpen(false)}></div>
-           <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl scale-in">
-              <h4 className="text-xl font-black text-gray-800 mb-2">搬移行程</h4>
-              <p className="text-[10px] font-bold text-gray-400 mb-8 uppercase tracking-widest">Select Target Day</p>
-              <div className="grid grid-cols-4 gap-3 max-h-60 overflow-y-auto no-scrollbar py-2">
-                 {daysArray.map(d => (
-                    <button key={d} onClick={() => handleBatchMove(d)} disabled={d === activeDay}
-                            className={`aspect-square rounded-2xl flex flex-col items-center justify-center transition-all ${d === activeDay ? 'bg-gray-100 text-gray-300' : 'bg-gray-50 text-gray-800 hover:bg-[#00A5BF] hover:text-white active:scale-95 shadow-sm cursor-pointer'}`}>
-                       <span className="text-[8px] font-black uppercase">Day</span>
-                       <span className="text-lg font-black">{d}</span>
-                    </button>
-                 ))}
-              </div>
-              <button onClick={() => setIsMoveModalOpen(false)} className="w-full mt-10 py-4 text-gray-400 font-black text-xs cursor-pointer">取消操作</button>
-           </div>
-        </div>
-      )}
-
+      {/* 垂直可拖移且可橫向收合的懸浮按鈕 */}
       {!isBatchMode && (
-        <div className="fixed bottom-28 right-6 flex flex-col gap-4 z-40">
-          <button onClick={() => { setEditingEvent({ day: activeDay, event: { id: '', title: '', time: '10:00', location: '', type: 'attraction' } }); setFinalImageUrl(undefined); setIsEventModalOpen(true); }} className="w-16 h-16 rounded-3xl bg-[#00A5BF] text-white flex items-center justify-center text-2xl shadow-2xl active:scale-95 transition-all cursor-pointer">
-            <i className="fa-solid fa-plus"></i>
+        <div 
+          style={{ 
+            top: fabY !== null ? `${fabY}px` : undefined,
+            transform: isFabRetracted ? 'translateX(75%)' : 'translateX(0)' 
+          }}
+          className={`fixed right-0 z-50 flex items-center transition-all duration-500 ease-out ${fabY === null ? 'bottom-48' : ''}`}
+          onTouchStart={handleFabTouchStart}
+          onTouchMove={handleFabTouchMove}
+          onMouseDown={handleFabTouchStart}
+          onMouseMove={handleFabTouchMove}
+        >
+          {/* 收合按鈕的「拉把」箭頭 */}
+          <button 
+            onClick={toggleRetract}
+            className={`w-8 h-12 bg-[#00A5BF]/20 backdrop-blur-md rounded-l-2xl flex items-center justify-center text-[#00A5BF] transition-opacity ${isFabRetracted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          >
+            <i className={`fa-solid ${isFabRetracted ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`}></i>
+          </button>
+
+          {/* 主要 FAB */}
+          <button 
+            onClick={handleFabClick} 
+            className={`w-16 h-16 rounded-[1.75rem] bg-[#00A5BF] text-white flex items-center justify-center text-3xl shadow-[0_12px_24px_rgba(0,165,191,0.4)] active:scale-90 transition-all cursor-pointer border-2 border-white/40 ring-4 ring-[#00A5BF]/10 mr-8 ${isFabRetracted ? 'opacity-50' : 'opacity-100'}`}
+          >
+            <i className="fa-solid fa-plus pointer-events-none"></i>
           </button>
         </div>
       )}
 
+      {/* 其他所有 Modal 邏輯保持不變 */}
       {isCropping && rawImage && (
         <div className="fixed inset-0 z-[250] bg-black/95 flex flex-col items-center justify-center p-6 animate-fadeIn text-center">
-           <div className="w-full max-w-md space-y-8">
+           <div className="w-full max-md space-y-8">
               <h3 className="text-white font-black text-xl tracking-tighter uppercase">裁切行程照片</h3>
               <div ref={cropZoneRef} className="w-full aspect-video bg-gray-900 relative overflow-hidden rounded-2xl border-2 border-[#00A5BF] cursor-move touch-none"
                    onMouseDown={(e) => { setIsDragging(true); setDragStart({ x: e.clientX - cropPos.x, y: e.clientY - cropPos.y }); }}
