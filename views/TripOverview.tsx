@@ -20,7 +20,6 @@ const AVATAR_OPTIONS = [
 ];
 
 const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
-  // 每次訪問首頁隨機產生一句話
   const [randomQuote] = useState(() => TRAVEL_QUOTES[Math.floor(Math.random() * TRAVEL_QUOTES.length)]);
 
   const [isAddingStay, setIsAddingStay] = useState(false);
@@ -64,23 +63,18 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      
       canvas.width = 1200; 
       canvas.height = 1600;
       ctx.fillStyle = 'white'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       const zone = cropZoneRef.current!;
       const rect = zone.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
-
       const drawWidth = canvas.width * cropPos.scale;
       const drawHeight = (img.naturalHeight / img.naturalWidth) * drawWidth;
       const drawX = cropPos.x * ratio;
       const drawY = cropPos.y * ratio;
-
       ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-      
       onUpdate({ image: canvas.toDataURL('image/jpeg', 0.8) });
       setIsCroppingCover(false); 
       setRawCoverImage(null);
@@ -90,7 +84,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
   const openAddMember = () => {
     setEditingMember(null);
     setMemberName('');
-    setSelectedAvatar(AVATAR_OPTIONS[Math.floor(Math.random() * AVATAR_OPTIONS.length)]);
+    setSelectedAvatar(AVATAR_OPTIONS[0]);
     setIsMemberModalOpen(true);
   };
 
@@ -107,6 +101,17 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     let updatedMembers = editingMember 
       ? trip.members.map(m => m.id === editingMember.id ? { ...m, name: memberName, avatar: selectedAvatar } : m)
       : [...trip.members, { id: `m_${Date.now()}`, name: memberName, avatar: selectedAvatar }];
+    onUpdate({ members: updatedMembers });
+    setIsMemberModalOpen(false);
+  };
+
+  const handleDeleteMember = () => {
+    if (!editingMember) return;
+    if (trip.members.length <= 1) {
+      alert("旅程至少需要一位成員。");
+      return;
+    }
+    const updatedMembers = trip.members.filter(m => m.id !== editingMember.id);
     onUpdate({ members: updatedMembers });
     setIsMemberModalOpen(false);
   };
@@ -198,7 +203,6 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                   <h4 className="text-3xl font-black text-gray-800 tracking-tighter text-left">{stay.city}</h4>
                   <p className="text-[11px] font-bold text-gray-400 truncate tracking-tight text-left">{stay.hotel}</p>
                 </div>
-                
                 <div className="flex gap-6 mt-4">
                   <div className="flex flex-col text-left">
                     <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check In</span>
@@ -268,12 +272,45 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
       {isMemberModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-md" onClick={() => setIsMemberModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left">
-            <h3 className="text-2xl font-black text-stone-900 tracking-tighter mb-8 text-left">{editingMember ? '編輯成員' : '新增家庭成員'}</h3>
-            <form onSubmit={handleSaveMember} className="space-y-8 text-center">
-              <img src={selectedAvatar} className="w-24 h-24 mx-auto rounded-3xl bg-stone-50 p-1 border-4 border-[#00A5BF]" />
-              <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
-              <button type="submit" className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] uppercase tracking-widest">儲存變更</button>
+          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[90vh] no-scrollbar">
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="text-2xl font-black text-stone-900 tracking-tighter">{editingMember ? '編輯成員' : '新增成員'}</h3>
+              <button onClick={() => setIsMemberModalOpen(false)} className="text-stone-300"><i className="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form onSubmit={handleSaveMember} className="space-y-10">
+              <div className="flex flex-col items-center">
+                <div className="w-28 h-28 rounded-[2.5rem] bg-stone-50 p-1 border-4 border-[#00A5BF] shadow-lg mb-8 overflow-hidden">
+                  <img src={selectedAvatar} className="w-full h-full object-contain" />
+                </div>
+                
+                <div className="grid grid-cols-4 gap-3 w-full max-w-[280px]">
+                  {AVATAR_OPTIONS.map(url => (
+                    <button 
+                      key={url} 
+                      type="button"
+                      onClick={() => setSelectedAvatar(url)}
+                      className={`aspect-square rounded-2xl p-1.5 transition-all ${selectedAvatar === url ? 'bg-[#00A5BF] scale-110 shadow-md ring-2 ring-white' : 'bg-gray-50 opacity-40 hover:opacity-100'}`}
+                    >
+                      <img src={url} className="w-full h-full object-contain" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-stone-300 uppercase block tracking-widest mb-3">成員名稱 (NAME)</label>
+                <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-8 py-5 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-stone-800 shadow-inner" />
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[11px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">儲存變更</button>
+                {editingMember && (
+                  <button type="button" onClick={handleDeleteMember} className="w-full py-4 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-50 rounded-full transition-colors">
+                    <i className="fa-solid fa-trash-can mr-2"></i> 刪除此成員
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
