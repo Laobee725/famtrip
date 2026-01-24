@@ -1,0 +1,8 @@
+{
+  "name": "旅遊旅遊",
+  "description": "A collaborative family travel planning application with AI-powered itineraries and shared expenses.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}

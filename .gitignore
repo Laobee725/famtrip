@@ -1,0 +1,20 @@
+# 依賴套件
+node_modules/
+.DS_Store
+dist/
+dist-ssr
+*.local
+
+# 開發環境紀錄
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 記錄檔
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
