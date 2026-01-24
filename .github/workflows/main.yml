@@ -21,9 +21,10 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build
-        env:
-          API_KEY: ${{ secrets.API_KEY }}
         run: npm run build
+        env:
+          # 將 GitHub Secrets 注入到 Build 環境變數
+          API_KEY: ${{ secrets.API_KEY }}
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
