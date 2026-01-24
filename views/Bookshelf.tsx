@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Trip, TripSeason } from '../types';
 
@@ -36,6 +35,28 @@ const BookshelfView: React.FC<BookshelfViewProps> = ({
     action();
     setActiveMenu(null);
   };
+
+  /**
+   * 排序邏輯：
+   * 1. 進行中與未來的行程 (active) 放上面，依 startDate 升序 (越近越前)
+   * 2. 已結束的行程 (past) 放下面，依 endDate 降序 (越新結案越前)
+   */
+  const sortedTrips = [...trips].sort((a, b) => {
+    const isAPast = a.endDate < today;
+    const isBPast = b.endDate < today;
+
+    // 如果一個是過去，一個不是，則 active 在前
+    if (isAPast && !isBPast) return 1;
+    if (!isAPast && isBPast) return -1;
+
+    // 如果都是過去，則最近剛結束的在前面
+    if (isAPast && isBPast) {
+      return b.endDate.localeCompare(a.endDate);
+    }
+
+    // 如果都是進行中或未來，則最早出發的在前面
+    return a.startDate.localeCompare(b.startDate);
+  });
 
   const renderStatusIndicator = () => {
     const isOnline = syncStatus === 'SUBSCRIBED';
@@ -88,7 +109,7 @@ const BookshelfView: React.FC<BookshelfViewProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
-            {trips.map(trip => {
+            {sortedTrips.map(trip => {
               const season = trip.season || 'spring';
               const sInfo = SEASON_CONFIG[season];
               const isFinished = trip.endDate < today;
@@ -97,38 +118,67 @@ const BookshelfView: React.FC<BookshelfViewProps> = ({
                 <div 
                   key={trip.id}
                   onClick={() => onSelectTrip(trip)}
-                  className="group relative bg-white rounded-[2.5rem] jp-shadow overflow-hidden border border-gray-50 active:scale-[0.98] transition-all"
+                  className={`group relative bg-white rounded-[2.5rem] jp-shadow overflow-hidden border transition-all active:scale-[0.98] ${
+                    isFinished ? 'border-stone-100 opacity-90' : 'border-gray-50'
+                  }`}
                 >
                   <div className="relative h-44 overflow-hidden">
-                    <img src={trip.image} className={`w-full h-full object-cover transition-all duration-700 ${isFinished ? 'sepia-[0.35] grayscale-[0.2]' : ''}`} alt={trip.title} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    {/* 復古濾鏡效果：sepia 與 grayscale 的組合 */}
+                    <img 
+                      src={trip.image} 
+                      className={`w-full h-full object-cover transition-all duration-700 ${
+                        isFinished ? 'sepia-[0.4] grayscale-[0.3] contrast-[0.9] blur-[0.3px]' : 'group-hover:scale-105'
+                      }`} 
+                      alt={trip.title} 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    
                     <div className={`absolute top-4 right-4 ${sInfo.bg} backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-2 shadow-sm border border-white/50`}>
                       <span className="text-xs">{sInfo.icon}</span>
                       <span className={`text-xs font-black ${sInfo.color}`}>{sInfo.label}</span>
                     </div>
+
                     <div className="absolute bottom-4 left-6 text-left">
-                      <span className="bg-[#00A5BF] text-white text-[10px] font-black px-3 py-1 rounded-full mb-2 inline-block shadow-sm uppercase tracking-wider">{trip.destination}</span>
-                      <h3 className="text-xl font-black text-white drop-shadow-md tracking-tight">{trip.title}</h3>
+                      <span className={`${isFinished ? 'bg-stone-400' : 'bg-[#00A5BF]'} text-white text-[10px] font-black px-3 py-1 rounded-full mb-2 inline-block shadow-sm uppercase tracking-wider`}>
+                        {trip.destination}
+                      </span>
+                      <h3 className={`text-xl font-black text-white drop-shadow-md tracking-tight ${isFinished ? 'opacity-80' : ''}`}>
+                        {trip.title}
+                      </h3>
                     </div>
+
+                    {isFinished && (
+                      <div className="absolute inset-0 bg-stone-900/10 pointer-events-none"></div>
+                    )}
                   </div>
+
                   <div className="p-6 flex justify-between items-center bg-white">
                     <div className="flex -space-x-3">
                       {trip.members.map((m, i) => (
-                        <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-gray-50 flex items-center justify-center text-xs font-black text-[#00A5BF] jp-shadow overflow-hidden shadow-sm">
+                        <div key={i} className={`w-10 h-10 rounded-full border-4 border-white bg-gray-50 flex items-center justify-center text-xs font-black jp-shadow overflow-hidden shadow-sm ${
+                          isFinished ? 'grayscale-[0.5] opacity-70' : 'text-[#00A5BF]'
+                        }`}>
                           {m.avatar ? <img src={m.avatar} className="w-full h-full object-cover" alt={m.name} /> : m.name[0]}
                         </div>
                       ))}
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-gray-400 font-black mb-0.5 uppercase tracking-widest">{isFinished ? '典藏旅程' : '冒險日期'}</p>
+                      <p className={`text-[10px] font-black mb-0.5 uppercase tracking-widest ${isFinished ? 'text-stone-300' : 'text-gray-400'}`}>
+                        {isFinished ? '典藏旅程' : '冒險日期'}
+                      </p>
                       <p className={`text-xs font-black ${isFinished ? 'text-stone-400' : 'text-gray-800'}`}>
                         {trip.startDate.replace(/-/g, '/')} — {trip.endDate.replace(/-/g, '/')}
                       </p>
                     </div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === trip.id ? null : trip.id); }} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center active:scale-90 transition-all border border-white/20">
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === trip.id ? null : trip.id); }} 
+                    className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white flex items-center justify-center active:scale-90 transition-all border border-white/20"
+                  >
                     <i className="fa-solid fa-ellipsis text-sm"></i>
                   </button>
+
                   {activeMenu === trip.id && (
                     <div className="absolute top-16 left-4 bg-white shadow-2xl rounded-2xl py-3 min-w-[180px] z-50 border border-gray-100 text-left animate-slideUp">
                       <button onClick={(e) => handleMenuAction(e, () => onEditTrip(trip))} className="w-full text-left px-5 py-3 text-xs font-black text-gray-700 hover:bg-gray-50 flex items-center gap-3"><i className="fa-solid fa-pen"></i> 編輯旅程設定</button>

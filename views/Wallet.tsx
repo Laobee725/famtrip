@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trip, Expense, Member, ExpenseSplit } from '../types';
 
@@ -345,7 +344,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">日期</label>
-                    <input type="date" className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none text-[11px] outline-none" 
+                    <input type="date" className="w-full bg-gray-50 rounded-2xl px-3 py-4 font-black border-none text-[11px] outline-none" 
                            value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
                   </div>
                 </div>
@@ -410,7 +409,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
       {isSettling && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-xl" onClick={() => setIsSettling(false)}></div>
-          <div className="relative w-full max-w-sm bg-white rounded-[3.5rem] p-10 shadow-2xl scale-in text-center border border-white">
+          <div className="relative w-full max-sm bg-white rounded-[3.5rem] p-10 shadow-2xl scale-in text-center border border-white">
              <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 text-3xl shadow-inner">
                 <i className="fa-solid fa-hand-holding-dollar"></i>
              </div>

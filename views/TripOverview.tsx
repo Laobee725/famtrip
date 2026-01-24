@@ -63,6 +63,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
+      // 封面固定 3:4 比例
       canvas.width = 1200; 
       canvas.height = 1600;
       ctx.fillStyle = 'white'; 
@@ -158,10 +159,14 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
             <div className="absolute inset-0 p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
               <div className="space-y-4 text-left">
                 <div className="space-y-2 text-left">
-                  <h2 className="text-6xl font-black text-white tracking-tighter leading-[0.85] drop-shadow-2xl text-left">{trip.destination.split(',')[0]}</h2>
-                  <div className="h-1.5 w-16 bg-[#00A5BF]"></div>
+                  {/* 字級調整：text-4xl 確保約 10 個中文字能呈現單行 */}
+                  <h2 className="text-4xl font-black text-white tracking-tighter leading-[1.1] drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] text-left">{trip.title}</h2>
+                  <div className="h-1.5 w-12 bg-[#00A5BF] shadow-lg"></div>
                 </div>
-                <p className="text-white/90 font-bold text-lg leading-tight tracking-tight drop-shadow-md max-w-[80%] text-left">{trip.title}</p>
+                <p className="text-white/95 font-black text-base leading-tight tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] max-w-[90%] text-left flex items-center gap-2">
+                  <i className="fa-solid fa-location-dot text-[#00A5BF] text-xs"></i>
+                  {trip.destination}
+                </p>
               </div>
             </div>
             <input ref={coverFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFileChange} />
@@ -251,8 +256,15 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                 onMouseDown={(e) => { setIsDragging(true); setDragStart({ x: e.clientX - cropPos.x, y: e.clientY - cropPos.y }); }}
                 onMouseMove={(e) => { if (isDragging) setCropPos(p => ({ ...p, x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })); }}
                 onMouseUp={() => setIsDragging(false)} onMouseLeave={() => setIsDragging(false)}
-                onTouchStart={(e) => { setIsDragging(true); setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); }}
-                onTouchMove={(e) => { if (isDragging) setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); }}
+                onTouchStart={(e) => { 
+                  setIsDragging(true); 
+                  setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); 
+                }}
+                onTouchMove={(e) => { 
+                  if (isDragging) {
+                    setCropPos(p => ({ ...p, x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y })); 
+                  }
+                }}
                 onTouchEnd={() => setIsDragging(false)}
               >
                  <img src={rawCoverImage} className="absolute pointer-events-none select-none max-w-none w-full" 
@@ -325,8 +337,8 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
               <input required placeholder="目的地城市" value={stayForm.city} onChange={e => setStayForm({...stayForm, city: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-lg" />
               <input required placeholder="飯店名稱" value={stayForm.hotel} onChange={e => setStayForm({...stayForm, hotel: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-lg" />
               <div className="grid grid-cols-2 gap-4">
-                 <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[14px] font-black" />
-                 <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[14px] font-black" />
+                 <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 px-3 py-4 rounded-2xl text-[11px] font-black outline-none" />
+                 <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 px-3 py-4 rounded-2xl text-[11px] font-black outline-none" />
               </div>
               <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[14px] uppercase tracking-widest">儲存目的地</button>
             </form>
