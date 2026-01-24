@@ -173,7 +173,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
              <i className="fa-solid fa-quote-left text-[#00A5BF] opacity-30 text-xs"></i>
           </div>
           <div className="border border-dashed border-stone-200 rounded-[2.5rem] p-10 relative bg-stone-50/30 min-h-[100px] flex items-center justify-center">
-             <p className="text-stone-600 font-bold leading-relaxed tracking-wide italic text-sm">
+             <p className="text-stone-600 font-bold leading-relaxed tracking-wide italic text-base">
                {randomQuote}
              </p>
           </div>
@@ -184,10 +184,10 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
         <section className="text-left">
           <div className="flex justify-between items-end mb-8 px-2">
             <div className="flex flex-col text-left">
-              <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">ROADMAP</span>
+              <span className="text-[12px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">ROADMAP</span>
               <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none text-left">路線</h3>
             </div>
-            <button onClick={() => openStayModal(null)} className="bg-white border border-gray-100 text-[#00A5BF] text-[10px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
+            <button onClick={() => openStayModal(null)} className="bg-white border border-gray-100 text-[#00A5BF] text-[12px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
               + 新增目的地
             </button>
           </div>
@@ -197,20 +197,20 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
               <div key={stay.id} onClick={() => openStayModal(stay)} className="relative group cursor-pointer bg-white px-8 py-7 rounded-[2.5rem] jp-shadow border border-white transition-all active:scale-[0.98] text-left">
                 <div className="absolute -left-[27px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-gray-800 z-10"></div>
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-gray-300 text-[9px] font-black uppercase tracking-[0.2em]">DESTINATION {idx + 1}</span>
+                  <span className="text-gray-300 text-[10px] font-black uppercase tracking-[0.2em]">DESTINATION {idx + 1}</span>
                 </div>
                 <div className="flex items-baseline gap-4 text-left">
                   <h4 className="text-3xl font-black text-gray-800 tracking-tighter text-left">{stay.city}</h4>
-                  <p className="text-[11px] font-bold text-gray-400 truncate tracking-tight text-left">{stay.hotel}</p>
+                  <p className="text-[13px] font-bold text-gray-400 truncate tracking-tight text-left">{stay.hotel}</p>
                 </div>
                 <div className="flex gap-6 mt-4">
                   <div className="flex flex-col text-left">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check In</span>
-                    <span className="text-[11px] font-black text-[#00A5BF] tracking-widest">{stay.startDate.replace(/-/g, '.')}</span>
+                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check In</span>
+                    <span className="text-[13px] font-black text-[#00A5BF] tracking-widest">{stay.startDate.replace(/-/g, '.')}</span>
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check Out</span>
-                    <span className="text-[11px] font-black text-[#00A5BF] tracking-widest">{stay.endDate.replace(/-/g, '.')}</span>
+                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check Out</span>
+                    <span className="text-[13px] font-black text-[#00A5BF] tracking-widest">{stay.endDate.replace(/-/g, '.')}</span>
                   </div>
                 </div>
               </div>
@@ -221,10 +221,10 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
         <section className="text-left">
           <div className="flex justify-between items-end mb-8 px-2">
              <div className="flex flex-col text-left">
-                <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">Travelers</span>
+                <span className="text-[12px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">Travelers</span>
                 <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none text-left">成員</h3>
              </div>
-             <button onClick={openAddMember} className="bg-white border border-gray-100 text-[#00A5BF] text-[10px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
+             <button onClick={openAddMember} className="bg-white border border-gray-100 text-[#00A5BF] text-[12px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
                 + 新增成員
              </button>
           </div>
@@ -235,7 +235,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                     <div className="w-16 h-16 rounded-[1.2rem] bg-stone-50 p-0.5 border-2 border-transparent group-hover/member:border-[#00A5BF] transition-all overflow-hidden shadow-sm">
                       <img src={m.avatar || AVATAR_OPTIONS[0]} className="w-full h-full object-contain" />
                     </div>
-                    <span className="text-[10px] font-black text-gray-800 tracking-widest uppercase">{m.name}</span>
+                    <span className="text-[12px] font-black text-gray-800 tracking-widest uppercase">{m.name}</span>
                   </div>
                 ))}
              </div>
@@ -252,7 +252,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                 onMouseMove={(e) => { if (isDragging) setCropPos(p => ({ ...p, x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })); }}
                 onMouseUp={() => setIsDragging(false)} onMouseLeave={() => setIsDragging(false)}
                 onTouchStart={(e) => { setIsDragging(true); setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); }}
-                onTouchMove={(e) => { if (isDragging) setCropPos(p => ({ ...p, x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y })); }}
+                onTouchMove={(e) => { if (isDragging) setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); }}
                 onTouchEnd={() => setIsDragging(false)}
               >
                  <img src={rawCoverImage} className="absolute pointer-events-none select-none max-w-none w-full" 
@@ -261,8 +261,8 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
               <div className="px-8 space-y-8">
                  <input type="range" min="0.1" max="5" step="0.01" value={cropPos.scale} onChange={e => setCropPos(p => ({...p, scale: parseFloat(e.target.value)}))} className="w-full h-1 bg-stone-700 rounded-lg appearance-none accent-[#00A5BF]" />
                  <div className="flex gap-4">
-                   <button onClick={() => { setIsCroppingCover(false); setRawCoverImage(null); }} className="flex-1 py-4 rounded-full bg-white/5 text-stone-400 font-black text-[11px] tracking-widest uppercase">放棄</button>
-                   <button onClick={finalizeCoverCrop} className="flex-1 py-4 rounded-full bg-[#00A5BF] text-white font-black text-[11px] tracking-widest shadow-2xl uppercase">套用裁切</button>
+                   <button onClick={() => { setIsCroppingCover(false); setRawCoverImage(null); }} className="flex-1 py-4 rounded-full bg-white/5 text-stone-400 font-black text-[13px] tracking-widest uppercase">放棄</button>
+                   <button onClick={finalizeCoverCrop} className="flex-1 py-4 rounded-full bg-[#00A5BF] text-white font-black text-[13px] tracking-widest shadow-2xl uppercase">套用裁切</button>
                  </div>
               </div>
            </div>
@@ -299,14 +299,14 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-stone-300 uppercase block tracking-widest mb-3">成員名稱 (NAME)</label>
-                <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-8 py-5 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-stone-800 shadow-inner" />
+                <label className="text-[12px] font-black text-stone-300 uppercase block tracking-widest mb-3">成員名稱 (NAME)</label>
+                <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-8 py-5 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-stone-800 shadow-inner text-lg" />
               </div>
 
               <div className="flex flex-col gap-4">
-                <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[11px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">儲存變更</button>
+                <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[14px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">儲存變更</button>
                 {editingMember && (
-                  <button type="button" onClick={handleDeleteMember} className="w-full py-4 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-50 rounded-full transition-colors">
+                  <button type="button" onClick={handleDeleteMember} className="w-full py-4 text-red-500 font-black text-[12px] uppercase tracking-widest hover:bg-red-50 rounded-full transition-colors">
                     <i className="fa-solid fa-trash-can mr-2"></i> 刪除此成員
                   </button>
                 )}
@@ -320,15 +320,15 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/50 backdrop-blur-sm" onClick={() => setIsAddingStay(false)}></div>
           <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left">
-            <h3 className="text-2xl font-black text-stone-900 mb-8 tracking-tighter text-left">編輯行程目的地</h3>
+            <h3 className="text-2xl font-black text-stone-900 mb-8 tracking-tighter text-left">行程目的地</h3>
             <form onSubmit={handleSaveStay} className="space-y-6">
-              <input required placeholder="目的地城市" value={stayForm.city} onChange={e => setStayForm({...stayForm, city: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
-              <input required placeholder="飯店名稱" value={stayForm.hotel} onChange={e => setStayForm({...stayForm, hotel: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
+              <input required placeholder="目的地城市" value={stayForm.city} onChange={e => setStayForm({...stayForm, city: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-lg" />
+              <input required placeholder="飯店名稱" value={stayForm.hotel} onChange={e => setStayForm({...stayForm, hotel: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-lg" />
               <div className="grid grid-cols-2 gap-4">
-                 <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[10px] font-black" />
-                 <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[10px] font-black" />
+                 <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[14px] font-black" />
+                 <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[14px] font-black" />
               </div>
-              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] uppercase tracking-widest">儲存目的地</button>
+              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[14px] uppercase tracking-widest">儲存目的地</button>
             </form>
           </div>
         </div>
