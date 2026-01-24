@@ -85,7 +85,6 @@ export interface Trip {
   image: string;
   season?: TripSeason;
   intro?: string;
-  inviteCode?: string;
   members: Member[];
   stays: TripStay[];
   weather?: string;

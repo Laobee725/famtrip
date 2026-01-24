@@ -78,15 +78,6 @@ const App: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  const generateInviteCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   const handleAddOrUpdateTrip = async (formData: any) => {
     setLoading(true);
     if (editingTrip) {
@@ -98,7 +89,6 @@ const App: React.FC = () => {
       const trip: Trip = {
         ...formData,
         id: Date.now().toString(),
-        inviteCode: generateInviteCode(),
         image: `https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop`,
         members: [{ id: 'm1', name: '主要成員', avatar: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Felix&backgroundColor=f0f4f7' }],
         stays: [],
@@ -127,7 +117,7 @@ const App: React.FC = () => {
            isOnline ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 
            isConnecting ? 'bg-amber-400 animate-pulse' : 'bg-rose-400'
          } transition-all duration-500`}></div>
-         <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+         <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-left">
            {isOnline ? 'Cloud Linked' : isConnecting ? 'Syncing...' : 'Local Only'}
          </span>
       </div>
