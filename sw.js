@@ -1,9 +1,8 @@
 const CACHE_NAME = 'famtrip-v1';
 const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './index.tsx'
+  '/famtrip/',
+  '/famtrip/index.html',
+  '/famtrip/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
