@@ -1,7 +1,5 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Trip, DayPlan, ItineraryEvent } from '../types';
-import { getDaySuggestions } from '../services/geminiService';
 
 interface PlannerViewProps {
   selectedTrip: Trip;
@@ -19,17 +17,8 @@ const CATEGORIES = [
   { id: 'shopping', label: '購物', icon: 'fa-bag-shopping', color: 'text-pink-400' },
 ];
 
-const LOADING_MESSAGES = [
-  "正在掃描您的旅行地圖...",
-  "正在為您尋找靈感...",
-  "AI 秘書正在翻閱在地地圖...",
-  "正在優化移動動線建議..."
-];
-
 const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => {
   const [activeDay, setActiveDay] = useState(1);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [editingEvent, setEditingEvent] = useState<{ event: ItineraryEvent, day: number } | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isDayEditOpen, setIsDayEditOpen] = useState(false);
@@ -51,35 +40,44 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
   const cropZoneRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  const [suggestions, setSuggestions] = useState<Partial<ItineraryEvent>[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
   const start = new Date(selectedTrip.startDate);
   const end = new Date(selectedTrip.endDate);
   const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
 
-  useEffect(() => {
-    let interval: any;
-    if (isGenerating) {
-      interval = setInterval(() => {
-        setLoadingMsgIdx(prev => (prev + 1) % LOADING_MESSAGES.length);
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [isGenerating]);
+  const currentDayPlan = selectedTrip.itinerary.find(p => p.day === activeDay) || {
+    day: activeDay,
+    events: [],
+    accommodation: '',
+    transportMode: '',
+    notes: ''
+  };
 
-  useEffect(() => {
-    setSuggestions([]);
-    setShowSuggestions(false);
-  }, [activeDay]);
+  const detectedLinks = useMemo(() => {
+    if (!currentDayPlan.notes) return [];
+    const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
+    const matches = currentDayPlan.notes.match(urlRegex);
+    if (!matches) return [];
+    return [...new Set(matches)].map(url => {
+      let fullUrl = url;
+      if (url.startsWith('www.')) fullUrl = 'https://' + url;
+      let label = url;
+      try {
+        const urlObj = new URL(fullUrl);
+        label = urlObj.hostname.replace('www.', '');
+      } catch(e) {}
+      return { label, fullUrl };
+    });
+  }, [currentDayPlan.notes]);
 
   useEffect(() => {
     if (editorRef.current) {
       const plan = selectedTrip.itinerary.find(p => p.day === activeDay);
-      editorRef.current.innerHTML = plan?.notes || '';
+      if (editorRef.current.innerHTML !== (plan?.notes || '')) {
+        editorRef.current.innerHTML = plan?.notes || '';
+      }
     }
-  }, [activeDay, selectedTrip.itinerary]);
+  }, [activeDay]);
 
   const getCurrentDayInfo = () => {
     const currentDayDate = new Date(start.getTime() + (activeDay - 1) * 86400000);
@@ -99,14 +97,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     const dd = date.getDate();
     const dw = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
     return { dateStr: `${mm}/${dd}`, dayName: `(${dw})` };
-  };
-
-  const currentDayPlan = selectedTrip.itinerary.find(p => p.day === activeDay) || {
-    day: activeDay,
-    events: [],
-    accommodation: '',
-    transportMode: '',
-    notes: ''
   };
 
   const handleUpdateDayPlan = (updates: Partial<DayPlan>) => {
@@ -182,21 +172,29 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     const img = new Image();
     img.src = rawImage;
     img.onload = () => {
-      canvas.width = 800; canvas.height = 450;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const zone = cropZoneRef.current!;
-        const rect = zone.getBoundingClientRect();
-        const scale = cropPos.scale;
-        const drawWidth = img.width * (canvas.width / (rect.width * scale));
-        const drawHeight = img.height * (canvas.width / (rect.width * scale));
-        const drawX = (cropPos.x / rect.width) * canvas.width;
-        const drawY = (cropPos.y / rect.height) * (canvas.width * (rect.height/rect.width));
-        ctx.drawImage(img, drawX * (800/rect.width/scale), drawY * (450/rect.height/scale), drawWidth, drawHeight);
-        setFinalImageUrl(canvas.toDataURL('image/jpeg', 0.8));
-        setIsCropping(false);
-      }
+      if (!ctx) return;
+      // 16:9 aspect ratio for event cards
+      canvas.width = 1280; 
+      canvas.height = 720;
+      ctx.fillStyle = 'white'; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const zone = cropZoneRef.current!;
+      const rect = zone.getBoundingClientRect();
+      const ratio = canvas.width / rect.width;
+      
+      // Calculate drawing dimensions based on natural aspect ratio of the image
+      const drawWidth = canvas.width * cropPos.scale;
+      const drawHeight = (img.naturalHeight / img.naturalWidth) * drawWidth;
+      
+      const drawX = cropPos.x * ratio;
+      const drawY = cropPos.y * ratio;
+      
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      setFinalImageUrl(canvas.toDataURL('image/jpeg', 0.8));
+      setIsCropping(false);
+      setRawImage(null);
     };
   };
 
@@ -229,38 +227,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     setIsEventModalOpen(false);
     setFinalImageUrl(undefined);
     setRawImage(null);
-  };
-
-  const handleAiSuggestions = async () => {
-    setIsGenerating(true);
-    const dayInfo = getCurrentDayInfo();
-    const existingTitles = currentDayPlan.events.map(e => `${e.time} ${e.title}`);
-    try {
-      const result = await getDaySuggestions(dayInfo.city, existingTitles, "家庭旅遊，節奏輕鬆");
-      setSuggestions(result);
-      setShowSuggestions(true);
-    } catch (e) { alert('AI 獲取建議失敗'); }
-    finally { setIsGenerating(false); }
-  };
-
-  const adoptSuggestion = (s: Partial<ItineraryEvent>) => {
-    const newEvent: ItineraryEvent = {
-      id: Date.now().toString() + Math.random(),
-      time: s.time || '10:00',
-      title: s.title || '',
-      location: s.location || '',
-      type: s.type as any || 'attraction',
-      description: s.description || ''
-    };
-    let newItinerary = [...selectedTrip.itinerary];
-    const targetIdx = newItinerary.findIndex(p => p.day === activeDay);
-    if (targetIdx > -1) {
-      newItinerary[targetIdx].events = [...newItinerary[targetIdx].events, newEvent].sort((a,b) => a.time.localeCompare(b.time));
-    } else {
-      newItinerary.push({ day: activeDay, events: [newEvent], accommodation: '', transportMode: '', notes: '' });
-    }
-    onUpdate({ itinerary: newItinerary });
-    setSuggestions(prev => prev.filter(item => item !== s));
   };
 
   const handleBatchMove = (targetDay: number) => {
@@ -366,34 +332,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
           </section>
         )}
 
-        {/* AI 建議區 */}
-        {showSuggestions && suggestions.length > 0 && (
-          <section className="animate-fadeIn">
-            <div className="flex items-center gap-2 mb-4 px-2">
-               <i className="fa-solid fa-wand-magic-sparkles text-[#00A5BF] text-xs"></i>
-               <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest text-left">AI 行程建議</h3>
-               <button onClick={() => setShowSuggestions(false)} className="ml-auto text-gray-300"><i className="fa-solid fa-xmark"></i></button>
-            </div>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar py-2 px-1">
-               {suggestions.map((s, idx) => (
-                 <div key={idx} className="flex-shrink-0 w-64 bg-white p-5 rounded-[2rem] jp-shadow border border-blue-50 flex flex-col justify-between text-left">
-                    <div>
-                      <div className="flex justify-between items-start mb-3">
-                         <span className="text-[9px] font-black bg-[#00A5BF]/10 text-[#00A5BF] px-2 py-1 rounded-lg">{s.time}</span>
-                         <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">{s.type}</span>
-                      </div>
-                      <h4 className="font-black text-gray-800 text-sm mb-1">{s.title}</h4>
-                      <p className="text-[10px] text-[#00A5BF] font-bold leading-relaxed mb-4">{s.description}</p>
-                    </div>
-                    <button onClick={() => adoptSuggestion(s)} className="w-full bg-[#00A5BF] text-white py-2.5 rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
-                      <i className="fa-solid fa-plus"></i> 加入行程
-                    </button>
-                 </div>
-               ))}
-            </div>
-          </section>
-        )}
-
         <div className="flex justify-between items-end px-2">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-black text-gray-800 tracking-tighter text-left">行程細節</h3>
@@ -417,10 +355,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
               <div className="flex flex-col gap-4 max-w-[240px] mx-auto">
                  <button onClick={() => { setEditingEvent({ day: activeDay, event: { id: '', title: '', time: '10:00', location: '', type: 'attraction' } }); setIsEventModalOpen(true); }} 
                          className="bg-[#00A5BF] text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                   <i className="fa-solid fa-plus-circle text-base"></i> 手動新增行程項目
-                 </button>
-                 <button onClick={handleAiSuggestions} className="bg-white border-2 border-gray-100 text-[#00A5BF] py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm">
-                   <i className="fa-solid fa-wand-magic-sparkles text-[10px]"></i> AI 小幫手給點靈感
+                   <i className="fa-solid fa-plus-circle text-base"></i> 新增行程項目
                  </button>
               </div>
             </div>
@@ -501,17 +436,34 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                 <div
                   ref={editorRef}
                   contentEditable
-                  className="w-full bg-transparent border-none outline-none font-bold text-stone-600 text-sm leading-relaxed min-h-[180px] placeholder:text-stone-200 relative z-10 text-left focus:ring-0"
-                  onInput={(e) => handleUpdateDayPlan({ notes: (e.target as HTMLDivElement).innerHTML })}
+                  className="w-full bg-transparent border-none outline-none font-black text-stone-700 text-lg leading-relaxed min-h-[220px] placeholder:text-stone-200 relative z-10 text-left focus:ring-0"
                   onBlur={(e) => handleUpdateDayPlan({ notes: (e.target as HTMLDivElement).innerHTML })}
                   data-placeholder="在此自由紀錄網址、景點筆記、待吃清單或是今日感言..."
                 ></div>
 
+                {/* 偵測到的網址按鈕區 */}
+                {detectedLinks.length > 0 && (
+                  <div className="mt-6 flex flex-wrap gap-2 relative z-10 animate-fadeIn">
+                     {detectedLinks.map((link, i) => (
+                       <a 
+                         key={i} 
+                         href={link.fullUrl} 
+                         target="_blank" 
+                         rel="noopener noreferrer"
+                         className="bg-[#00A5BF] text-white px-4 py-2 rounded-xl text-[11px] font-black flex items-center gap-2 shadow-md active:scale-90 transition-all border border-white/20"
+                       >
+                         <i className="fa-solid fa-link"></i>
+                         <span className="truncate max-w-[100px]">{link.label}</span>
+                       </a>
+                     ))}
+                  </div>
+                )}
+
                 <div className="mt-4 flex justify-between items-center text-[9px] font-black text-stone-300 uppercase tracking-widest border-t border-stone-50 pt-4">
                   <span>Day {activeDay} · Archive</span>
                   <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-floppy-disk opacity-40"></i>
-                    <span>已自動儲存</span>
+                    <i className="fa-solid fa-pencil opacity-40"></i>
+                    <span>點擊空白處即存檔</span>
                   </div>
                 </div>
               </div>
@@ -595,31 +547,16 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
 
       {!isBatchMode && (
         <div className="fixed bottom-28 right-6 flex flex-col gap-4 z-40">
-          <button onClick={handleAiSuggestions} disabled={isGenerating} className="w-12 h-12 rounded-2xl bg-white text-[#00A5BF] jp-shadow flex items-center justify-center text-lg shadow-xl active:scale-95 transition-all border border-gray-50 cursor-pointer">
-            <i className="fa-solid fa-wand-magic-sparkles"></i>
-          </button>
           <button onClick={() => { setEditingEvent({ day: activeDay, event: { id: '', title: '', time: '10:00', location: '', type: 'attraction' } }); setFinalImageUrl(undefined); setIsEventModalOpen(true); }} className="w-16 h-16 rounded-3xl bg-[#00A5BF] text-white flex items-center justify-center text-2xl shadow-2xl active:scale-95 transition-all cursor-pointer">
             <i className="fa-solid fa-plus"></i>
           </button>
         </div>
       )}
 
-      {isGenerating && (
-        <div className="fixed inset-0 bg-white/60 backdrop-blur-2xl z-[300] flex flex-col items-center justify-center p-12 text-center animate-fadeIn overflow-hidden">
-          <div className="relative w-40 h-40 mb-12 flex items-center justify-center">
-             <div className="absolute inset-0 border-[6px] border-[#00A5BF]/10 rounded-full"></div>
-             <div className="absolute inset-0 border-[6px] border-[#00A5BF] rounded-full border-t-transparent animate-spin"></div>
-             <i className="fa-solid fa-sparkles text-5xl text-[#00A5BF] animate-pulse relative z-10"></i>
-          </div>
-          <div className="bg-white/80 glass-card px-8 py-4 rounded-3xl shadow-xl">
-             <p className="text-sm font-black text-gray-800 animate-fadeIn" key={loadingMsgIdx}>{LOADING_MESSAGES[loadingMsgIdx]}</p>
-          </div>
-        </div>
-      )}
-
       {isCropping && rawImage && (
         <div className="fixed inset-0 z-[250] bg-black/95 flex flex-col items-center justify-center p-6 animate-fadeIn text-center">
            <div className="w-full max-w-md space-y-8">
+              <h3 className="text-white font-black text-xl tracking-tighter uppercase">裁切行程照片</h3>
               <div ref={cropZoneRef} className="w-full aspect-video bg-gray-900 relative overflow-hidden rounded-2xl border-2 border-[#00A5BF] cursor-move touch-none"
                    onMouseDown={(e) => { setIsDragging(true); setDragStart({ x: e.clientX - cropPos.x, y: e.clientY - cropPos.y }); }}
                    onMouseMove={(e) => { if (isDragging) setCropPos(prev => ({ ...prev, x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })); }}
@@ -627,15 +564,15 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                    onTouchStart={(e) => { setIsDragging(true); setDragStart({ x: e.touches[0].clientX - cropPos.x, y: e.touches[0].clientY - cropPos.y }); }}
                    onTouchMove={(e) => { if (isDragging) setCropPos(prev => ({ ...prev, x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y })); }}
                    onTouchEnd={() => setIsDragging(false)}>
-                 <img src={rawImage} alt="raw" className="absolute pointer-events-none select-none"
-                      style={{ transform: `translate(${cropPos.x}px, ${cropPos.y}px) scale(${cropPos.scale})`, transformOrigin: 'center' }} />
+                 <img src={rawImage} alt="raw" className="absolute pointer-events-none select-none max-w-none w-full"
+                      style={{ transform: `translate(${cropPos.x}px, ${cropPos.y}px) scale(${cropPos.scale})`, transformOrigin: 'top left' }} />
               </div>
               <div className="px-4 space-y-4">
-                 <input type="range" min="0.5" max="3" step="0.01" value={cropPos.scale} onChange={e => setCropPos(prev => ({...prev, scale: parseFloat(e.target.value)}))} className="w-full h-1 bg-gray-700 rounded-lg appearance-none accent-[#00A5BF]" />
+                 <input type="range" min="0.1" max="5" step="0.01" value={cropPos.scale} onChange={e => setCropPos(prev => ({...prev, scale: parseFloat(e.target.value)}))} className="w-full h-1 bg-gray-700 rounded-lg appearance-none accent-[#00A5BF]" />
               </div>
               <div className="flex gap-4">
-                 <button onClick={() => { setIsCropping(false); setRawImage(null); }} className="flex-1 py-4 rounded-2xl bg-white/10 text-white font-black cursor-pointer">放棄</button>
-                 <button onClick={finalizeCrop} className="flex-1 py-4 rounded-2xl bg-[#00A5BF] text-white font-black shadow-xl cursor-pointer">確認裁切</button>
+                 <button onClick={() => { setIsCropping(false); setRawImage(null); }} className="flex-1 py-4 rounded-2xl bg-white/10 text-white font-black cursor-pointer uppercase text-xs tracking-widest">放棄</button>
+                 <button onClick={finalizeCrop} className="flex-1 py-4 rounded-2xl bg-[#00A5BF] text-white font-black shadow-xl cursor-pointer uppercase text-xs tracking-widest">確認裁切</button>
               </div>
            </div>
         </div>
@@ -646,7 +583,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
           <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => { setIsEventModalOpen(false); setFinalImageUrl(undefined); }}></div>
           <div className="relative w-full max-w-md bg-white rounded-t-[3.5rem] p-8 pb-12 shadow-2xl animate-slideUp overflow-y-auto max-h-[95vh] no-scrollbar">
              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black text-gray-800">{editingEvent.event.id ? '編輯行程' : '新增手動行程'}</h3>
+                <h3 className="text-2xl font-black text-gray-800">{editingEvent.event.id ? '編輯行程' : '新增行程'}</h3>
                 <button onClick={() => { setIsEventModalOpen(false); setFinalImageUrl(undefined); }} className="text-gray-300"><i className="fa-solid fa-xmark text-xl"></i></button>
              </div>
              <form onSubmit={handleSaveEvent} className="space-y-6">
@@ -721,7 +658,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                            onChange={e => handleUpdateDayPlan({ transportMode: e.target.value })} />
                  </div>
               </div>
-              <button onClick={() => setIsDayEditOpen(false)} className="w-full mt-10 bg-[#00A5BF] text-white py-5 rounded-2xl font-black text-sm shadow-xl cursor-pointer uppercase tracking-widest">新增目的地</button>
+              <button onClick={() => setIsDayEditOpen(false)} className="w-full mt-10 bg-[#00A5BF] text-white py-5 rounded-2xl font-black text-sm shadow-xl cursor-pointer uppercase tracking-widest">儲存</button>
            </div>
         </div>
       )}
