@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Trip, Member, TripStay } from '../types';
-import { getStayWeather, generateTripImage, generateTripIntro } from '../services/geminiService';
+import { getStayWeather } from '../services/geminiService';
+import { TRAVEL_QUOTES } from '../constants/quotes';
 
 interface TripOverviewProps {
   trip: Trip | null;
@@ -19,13 +20,13 @@ const AVATAR_OPTIONS = [
 ];
 
 const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
+  // 每次訪問首頁隨機產生一句話
+  const [randomQuote] = useState(() => TRAVEL_QUOTES[Math.floor(Math.random() * TRAVEL_QUOTES.length)]);
+
   const [isAddingStay, setIsAddingStay] = useState(false);
   const [editingStay, setEditingStay] = useState<TripStay | null>(null);
   const [stayForm, setStayForm] = useState({ city: '', hotel: '', startDate: '', endDate: '' });
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [isGeneratingIntro, setIsGeneratingIntro] = useState(false);
 
-  // 成員管理狀態
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [memberName, setMemberName] = useState('');
@@ -41,67 +42,6 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
   const cropZoneRef = useRef<HTMLDivElement>(null);
 
   if (!trip) return null;
-
-  const handleAiGenerateIntro = async () => {
-    setIsGeneratingIntro(true);
-    const intro = await generateTripIntro(trip.destination, trip.season || '春天');
-    onUpdate({ intro });
-    setIsGeneratingIntro(false);
-  };
-
-  const openAddMember = () => {
-    setEditingMember(null);
-    setMemberName('');
-    setSelectedAvatar(AVATAR_OPTIONS[Math.floor(Math.random() * AVATAR_OPTIONS.length)]);
-    setIsMemberModalOpen(true);
-  };
-
-  const openEditMember = (member: Member) => {
-    setEditingMember(member);
-    setMemberName(member.name);
-    setSelectedAvatar(member.avatar || AVATAR_OPTIONS[0]);
-    setIsMemberModalOpen(true);
-  };
-
-  const handleSaveMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!memberName.trim()) return;
-
-    let updatedMembers: Member[];
-    if (editingMember) {
-      updatedMembers = trip.members.map(m => 
-        m.id === editingMember.id ? { ...m, name: memberName, avatar: selectedAvatar } : m
-      );
-    } else {
-      updatedMembers = [
-        ...trip.members, 
-        { id: `m_${Date.now()}`, name: memberName, avatar: selectedAvatar }
-      ];
-    }
-
-    onUpdate({ members: updatedMembers });
-    setIsMemberModalOpen(false);
-  };
-
-  const handleDeleteMember = () => {
-    if (!editingMember) return;
-    if (trip.members.length <= 1) {
-      alert("旅程至少需要一位成員喔！");
-      return;
-    }
-    if (window.confirm(`確定要移除「${editingMember.name}」嗎？`)) {
-      onUpdate({ members: trip.members.filter(m => m.id !== editingMember.id) });
-      setIsMemberModalOpen(false);
-    }
-  };
-
-  const handleAiGenerateCover = async () => {
-    setIsGeneratingImage(true);
-    const prompt = `${trip.destination} landmark, ${trip.season || 'spring'} scenery, cinematic travel photography`;
-    const imageUrl = await generateTripImage(prompt);
-    if (imageUrl) onUpdate({ image: imageUrl });
-    setIsGeneratingImage(false);
-  };
 
   const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,17 +64,51 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      canvas.width = 1200; canvas.height = 1600;
-      ctx.fillStyle = 'white'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      
+      canvas.width = 1200; 
+      canvas.height = 1600;
+      ctx.fillStyle = 'white'; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       const zone = cropZoneRef.current!;
       const rect = zone.getBoundingClientRect();
-      const scale = cropPos.scale;
-      const drawWidth = img.width * (canvas.width / (rect.width * scale));
-      const drawHeight = img.height * (canvas.width / (rect.width * scale));
-      ctx.drawImage(img, (cropPos.x / rect.width) * canvas.width, (cropPos.y / rect.height) * canvas.height, drawWidth, drawHeight);
+      const ratio = canvas.width / rect.width;
+
+      const drawWidth = canvas.width * cropPos.scale;
+      const drawHeight = (img.naturalHeight / img.naturalWidth) * drawWidth;
+      const drawX = cropPos.x * ratio;
+      const drawY = cropPos.y * ratio;
+
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      
       onUpdate({ image: canvas.toDataURL('image/jpeg', 0.8) });
-      setIsCroppingCover(false); setRawCoverImage(null);
+      setIsCroppingCover(false); 
+      setRawCoverImage(null);
     };
+  };
+
+  const openAddMember = () => {
+    setEditingMember(null);
+    setMemberName('');
+    setSelectedAvatar(AVATAR_OPTIONS[Math.floor(Math.random() * AVATAR_OPTIONS.length)]);
+    setIsMemberModalOpen(true);
+  };
+
+  const openEditMember = (member: Member) => {
+    setEditingMember(member);
+    setMemberName(member.name);
+    setSelectedAvatar(member.avatar || AVATAR_OPTIONS[0]);
+    setIsMemberModalOpen(true);
+  };
+
+  const handleSaveMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!memberName.trim()) return;
+    let updatedMembers = editingMember 
+      ? trip.members.map(m => m.id === editingMember.id ? { ...m, name: memberName, avatar: selectedAvatar } : m)
+      : [...trip.members, { id: `m_${Date.now()}`, name: memberName, avatar: selectedAvatar }];
+    onUpdate({ members: updatedMembers });
+    setIsMemberModalOpen(false);
   };
 
   const openStayModal = (stay: TripStay | null) => {
@@ -158,11 +132,11 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
 
   return (
     <div className="bg-white min-h-screen pb-20 animate-fadeIn text-left">
-      <section className="px-6 pt-10 pb-6 bg-white relative">
+      <section className="px-6 pt-10 pb-6 bg-white relative text-left">
         <header className="border-t-2 border-b-2 border-stone-900 py-6 mb-10 flex justify-between items-center px-1">
           <div className="flex-1 text-left">
-            <h1 className="text-3xl font-black tracking-tighter text-stone-900 leading-none mb-1 uppercase">FAMTRIP JOURNAL</h1>
-            <p className="text-[9px] font-bold text-[#00A5BF] tracking-[0.2em]">家族の旅行記 · 旅の記憶</p>
+            <h1 className="text-2xl font-black tracking-tighter text-stone-900 leading-none mb-1 uppercase text-left">FAMTRIP JOURNAL</h1>
+            <p className="text-[9px] font-bold text-[#00A5BF] tracking-[0.2em] text-left">家族の旅行記 · 旅の記憶</p>
           </div>
           <div className="text-right border-l border-stone-200 pl-6">
             <p className="text-xs font-black text-stone-900 leading-none uppercase tracking-tighter">VOL.{trip.startDate.split('-')[0]}</p>
@@ -173,120 +147,78 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
         <div className="relative group mb-12">
           <div 
             onClick={() => coverFileInputRef.current?.click()}
-            className="relative w-full aspect-[3/4] bg-stone-50 overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] cursor-pointer active:scale-[0.99] transition-all"
+            className="relative w-full aspect-[3/4] bg-stone-50 overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] cursor-pointer active:scale-[0.99] transition-all rounded-sm"
           >
-            {isGeneratingImage ? (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-stone-100 animate-pulse">
-                <i className="fa-solid fa-wand-magic-sparkles text-4xl text-[#00A5BF] mb-4"></i>
-                <p className="text-xs font-black text-[#00A5BF] uppercase tracking-widest">AI 正在繪製封面...</p>
-              </div>
-            ) : (
-              <img src={trip.image} className="w-full h-full object-cover grayscale-[0.1] contrast-[1.1]" />
-            )}
-            
-            <div className="absolute inset-0 p-10 flex flex-col justify-end bg-gradient-to-t from-black/60 via-transparent to-transparent">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h2 className="text-6xl font-black text-white tracking-tighter leading-[0.85] drop-shadow-2xl">{trip.destination.split(',')[0]}</h2>
-                  <div className="h-1 w-20 bg-[#00A5BF]"></div>
+            <img src={trip.image} className="w-full h-full object-cover grayscale-[0.05] contrast-[1.05]" />
+            <div className="absolute inset-0 p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
+              <div className="space-y-4 text-left">
+                <div className="space-y-2 text-left">
+                  <h2 className="text-6xl font-black text-white tracking-tighter leading-[0.85] drop-shadow-2xl text-left">{trip.destination.split(',')[0]}</h2>
+                  <div className="h-1.5 w-16 bg-[#00A5BF]"></div>
                 </div>
-                <p className="text-white font-bold text-xl leading-tight tracking-tight drop-shadow-md">{trip.title}</p>
+                <p className="text-white/90 font-bold text-lg leading-tight tracking-tight drop-shadow-md max-w-[80%] text-left">{trip.title}</p>
               </div>
             </div>
             <input ref={coverFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFileChange} />
           </div>
-
-          <button 
-            onClick={(e) => { e.stopPropagation(); handleAiGenerateCover(); }}
-            className="absolute -bottom-6 right-6 w-14 h-14 rounded-2xl bg-white text-[#00A5BF] shadow-2xl flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-all z-20 border border-stone-100"
-          >
-            <i className={`fa-solid ${isGeneratingImage ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`}></i>
-          </button>
         </div>
 
-        {/* AI 序言區 */}
-        <div className="relative mt-8 px-4">
+        <div className="relative mt-8 px-2 text-center">
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-white px-4">
              <i className="fa-solid fa-quote-left text-[#00A5BF] opacity-30 text-xs"></i>
           </div>
-          <div className="border border-dashed border-stone-200 rounded-[2.5rem] p-10 text-center relative group">
-             {trip.intro ? (
-               <div className="space-y-4">
-                 <p className="text-stone-600 font-bold leading-relaxed tracking-wide italic text-sm">
-                   {trip.intro}
-                 </p>
-                 {!isGeneratingIntro && (
-                   <button 
-                     onClick={handleAiGenerateIntro}
-                     className="text-[9px] font-black text-[#00A5BF] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all"
-                   >
-                     重新生成序詞
-                   </button>
-                 )}
-               </div>
-             ) : (
-               <div className="py-4">
-                 <p className="text-stone-300 text-xs font-bold mb-6 italic">「為這段冒險留下最初的共鳴...」</p>
-                 <button 
-                   onClick={handleAiGenerateIntro}
-                   disabled={isGeneratingIntro}
-                   className="bg-[#00A5BF]/5 text-[#00A5BF] px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 mx-auto border border-[#00A5BF]/20"
-                 >
-                   <i className={`fa-solid ${isGeneratingIntro ? 'fa-spinner fa-spin' : 'fa-sparkles'}`}></i>
-                   {isGeneratingIntro ? '思考中...' : '生成故事序言'}
-                 </button>
-               </div>
-             )}
-             {isGeneratingIntro && (
-               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-[2.5rem] flex items-center justify-center">
-                 <div className="w-1.5 h-1.5 bg-[#00A5BF] rounded-full animate-ping"></div>
-               </div>
-             )}
+          <div className="border border-dashed border-stone-200 rounded-[2.5rem] p-10 relative bg-stone-50/30 min-h-[100px] flex items-center justify-center">
+             <p className="text-stone-600 font-bold leading-relaxed tracking-wide italic text-sm">
+               {randomQuote}
+             </p>
           </div>
         </div>
       </section>
 
-      <div className="bg-[#F0F4F7] px-6 py-12 space-y-12 rounded-t-[3rem] -mt-4 shadow-[0_-20px_40px_rgba(0,0,0,0.02)]">
-        {/* 路線清單 */}
-        <section>
+      <div className="bg-[#F0F4F7] px-6 py-12 space-y-12 rounded-t-[3.5rem] -mt-6 shadow-[0_-25px_50px_rgba(0,0,0,0.03)] border-t border-white text-left">
+        <section className="text-left">
           <div className="flex justify-between items-end mb-8 px-2">
             <div className="flex flex-col text-left">
-              <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase">ROADMAP</span>
-              <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none">路線</h3>
+              <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">ROADMAP</span>
+              <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none text-left">路線</h3>
             </div>
             <button onClick={() => openStayModal(null)} className="bg-white border border-gray-100 text-[#00A5BF] text-[10px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
               + 新增目的地
             </button>
           </div>
-
-          <div className="space-y-4 pl-4 relative">
+          <div className="space-y-4 pl-4 relative text-left">
             <div className="absolute left-[3.5px] top-6 bottom-6 w-px border-l border-dashed border-gray-300"></div>
             {trip.stays.map((stay, idx) => (
-              <div key={stay.id} onClick={() => openStayModal(stay)} className="relative group cursor-pointer bg-white px-6 py-6 rounded-[2rem] jp-shadow border border-white transition-all active:scale-[0.98]">
+              <div key={stay.id} onClick={() => openStayModal(stay)} className="relative group cursor-pointer bg-white px-8 py-7 rounded-[2.5rem] jp-shadow border border-white transition-all active:scale-[0.98] text-left">
                 <div className="absolute -left-[27px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-gray-800 z-10"></div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
                   <span className="text-gray-300 text-[9px] font-black uppercase tracking-[0.2em]">DESTINATION {idx + 1}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-[#00A5BF]">{stay.temp}°C</span>
-                    <i className="fa-solid fa-cloud-sun text-[#00A5BF] opacity-30"></i>
+                </div>
+                <div className="flex items-baseline gap-4 text-left">
+                  <h4 className="text-3xl font-black text-gray-800 tracking-tighter text-left">{stay.city}</h4>
+                  <p className="text-[11px] font-bold text-gray-400 truncate tracking-tight text-left">{stay.hotel}</p>
+                </div>
+                
+                <div className="flex gap-6 mt-4">
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check In</span>
+                    <span className="text-[11px] font-black text-[#00A5BF] tracking-widest">{stay.startDate.replace(/-/g, '.')}</span>
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-0.5">Check Out</span>
+                    <span className="text-[11px] font-black text-[#00A5BF] tracking-widest">{stay.endDate.replace(/-/g, '.')}</span>
                   </div>
                 </div>
-                <div className="flex items-baseline gap-4">
-                  <h4 className="text-2xl font-black text-gray-800 tracking-tighter">{stay.city}</h4>
-                  <p className="text-[11px] font-bold text-gray-400 truncate tracking-tight">{stay.hotel}</p>
-                </div>
-                <p className="text-[10px] font-black text-[#00A5BF] mt-2 uppercase tracking-widest">{stay.startDate.replace(/-/g,'.')} — {stay.endDate.replace(/-/g,'.')}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 成員清單 */}
-        <section>
+        <section className="text-left">
           <div className="flex justify-between items-end mb-8 px-2">
              <div className="flex flex-col text-left">
-                <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase">Travelers</span>
-                <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none">成員</h3>
+                <span className="text-[10px] text-[#00A5BF] font-black tracking-[0.2em] mb-1 uppercase text-left">Travelers</span>
+                <h3 className="text-3xl font-black text-gray-800 tracking-tighter leading-none text-left">成員</h3>
              </div>
              <button onClick={openAddMember} className="bg-white border border-gray-100 text-[#00A5BF] text-[10px] font-black px-6 py-3 rounded-full active:scale-95 transition-all shadow-sm">
                 + 新增成員
@@ -295,11 +227,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
           <div className="bg-white p-8 rounded-[2.5rem] jp-shadow border border-white">
              <div className="flex flex-wrap gap-8 justify-start">
                 {trip.members.map(m => (
-                  <div 
-                    key={m.id} 
-                    onClick={() => openEditMember(m)}
-                    className="flex flex-col items-center gap-3 group/member cursor-pointer active:scale-90 transition-all"
-                  >
+                  <div key={m.id} onClick={() => openEditMember(m)} className="flex flex-col items-center gap-3 group/member cursor-pointer active:scale-90 transition-all">
                     <div className="w-16 h-16 rounded-[1.2rem] bg-stone-50 p-0.5 border-2 border-transparent group-hover/member:border-[#00A5BF] transition-all overflow-hidden shadow-sm">
                       <img src={m.avatar || AVATAR_OPTIONS[0]} className="w-full h-full object-contain" />
                     </div>
@@ -311,63 +239,6 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
         </section>
       </div>
 
-      {/* 成員管理 Modal */}
-      {isMemberModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn text-left">
-          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-md" onClick={() => setIsMemberModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp">
-            <div className="flex justify-between items-center mb-8">
-               <h3 className="text-2xl font-black text-stone-900 tracking-tighter">
-                 {editingMember ? '編輯成員' : '新增家庭成員'}
-               </h3>
-               <button onClick={() => setIsMemberModalOpen(false)} className="text-stone-300"><i className="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            
-            <form onSubmit={handleSaveMember} className="space-y-8">
-              <div className="flex flex-col items-center gap-6">
-                <div className="w-24 h-24 rounded-[1.5rem] bg-stone-50 p-1 border-4 border-[#00A5BF] shadow-lg overflow-hidden">
-                   <img src={selectedAvatar} className="w-full h-full object-contain" />
-                </div>
-                <div className="grid grid-cols-4 gap-2 w-full">
-                  {AVATAR_OPTIONS.map(avatar => (
-                    <button 
-                      key={avatar} type="button" 
-                      onClick={() => setSelectedAvatar(avatar)}
-                      className={`aspect-square rounded-xl p-1 border-2 transition-all ${selectedAvatar === avatar ? 'border-[#00A5BF] bg-[#00A5BF]/5' : 'border-transparent bg-stone-50'}`}
-                    >
-                      <img src={avatar} className="w-full h-full object-contain" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-stone-300 uppercase block mb-3 tracking-widest">成員名稱</label>
-                <input 
-                  autoFocus required
-                  value={memberName}
-                  onChange={(e) => setMemberName(e.target.value)}
-                  placeholder="如：爸爸、小花" 
-                  className="w-full bg-stone-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" 
-                />
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button type="submit" className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] shadow-xl uppercase tracking-widest">
-                  儲存成員資訊
-                </button>
-                {editingMember && (
-                  <button type="button" onClick={handleDeleteMember} className="text-red-400 font-black text-[10px] uppercase py-2">
-                    移除此成員
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 封面裁切 Modal */}
       {isCroppingCover && rawCoverImage && (
         <div className="fixed inset-0 z-[250] bg-stone-900 flex flex-col items-center justify-center p-6 animate-fadeIn">
            <div className="w-full max-sm space-y-10 text-center">
@@ -380,33 +251,47 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                 onTouchMove={(e) => { if (isDragging) setCropPos(p => ({ ...p, x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y })); }}
                 onTouchEnd={() => setIsDragging(false)}
               >
-                 <img src={rawCoverImage} className="absolute pointer-events-none select-none" style={{ transform: `translate(${cropPos.x}px, ${cropPos.y}px) scale(${cropPos.scale})`, transformOrigin: 'center' }} />
+                 <img src={rawCoverImage} className="absolute pointer-events-none select-none max-w-none w-full" 
+                      style={{ transform: `translate(${cropPos.x}px, ${cropPos.y}px) scale(${cropPos.scale})`, transformOrigin: 'top left' }} />
               </div>
               <div className="px-8 space-y-8">
                  <input type="range" min="0.1" max="5" step="0.01" value={cropPos.scale} onChange={e => setCropPos(p => ({...p, scale: parseFloat(e.target.value)}))} className="w-full h-1 bg-stone-700 rounded-lg appearance-none accent-[#00A5BF]" />
                  <div className="flex gap-4">
-                   <button onClick={() => setIsCroppingCover(false)} className="flex-1 py-4 rounded-full bg-white/5 text-stone-400 font-black text-[11px] tracking-widest uppercase">取消</button>
-                   <button onClick={finalizeCoverCrop} className="flex-1 py-4 rounded-full bg-[#00A5BF] text-white font-black text-[11px] tracking-widest shadow-2xl uppercase">套用</button>
+                   <button onClick={() => { setIsCroppingCover(false); setRawCoverImage(null); }} className="flex-1 py-4 rounded-full bg-white/5 text-stone-400 font-black text-[11px] tracking-widest uppercase">放棄</button>
+                   <button onClick={finalizeCoverCrop} className="flex-1 py-4 rounded-full bg-[#00A5BF] text-white font-black text-[11px] tracking-widest shadow-2xl uppercase">套用裁切</button>
                  </div>
               </div>
            </div>
         </div>
       )}
 
-      {/* 住宿編輯 Modal */}
+      {isMemberModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn text-left">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-md" onClick={() => setIsMemberModalOpen(false)}></div>
+          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left">
+            <h3 className="text-2xl font-black text-stone-900 tracking-tighter mb-8 text-left">{editingMember ? '編輯成員' : '新增家庭成員'}</h3>
+            <form onSubmit={handleSaveMember} className="space-y-8 text-center">
+              <img src={selectedAvatar} className="w-24 h-24 mx-auto rounded-3xl bg-stone-50 p-1 border-4 border-[#00A5BF]" />
+              <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
+              <button type="submit" className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] uppercase tracking-widest">儲存變更</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {isAddingStay && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/50 backdrop-blur-sm" onClick={() => setIsAddingStay(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto no-scrollbar">
-            <h3 className="text-2xl font-black text-stone-900 mb-8 tracking-tighter">編輯行程目的地</h3>
+          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left">
+            <h3 className="text-2xl font-black text-stone-900 mb-8 tracking-tighter text-left">編輯行程目的地</h3>
             <form onSubmit={handleSaveStay} className="space-y-6">
               <input required placeholder="目的地城市" value={stayForm.city} onChange={e => setStayForm({...stayForm, city: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
               <input required placeholder="飯店名稱" value={stayForm.hotel} onChange={e => setStayForm({...stayForm, hotel: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" />
               <div className="grid grid-cols-2 gap-4">
-                <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="w-full bg-stone-50 rounded-2xl px-5 py-4 text-[10px] font-black" />
-                <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="w-full bg-stone-50 rounded-2xl px-5 py-4 text-[10px] font-black" />
+                 <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[10px] font-black" />
+                 <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 p-4 rounded-2xl text-[10px] font-black" />
               </div>
-              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] shadow-2xl uppercase tracking-widest">儲存目的地</button>
+              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[11px] uppercase tracking-widest">儲存目的地</button>
             </form>
           </div>
         </div>
