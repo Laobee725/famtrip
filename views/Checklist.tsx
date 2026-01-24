@@ -7,20 +7,20 @@ interface ChecklistViewProps {
   onUpdate: (updates: Partial<Trip>) => void;
 }
 
-const COLOR_OPTIONS = [
-  'bg-[#FF9946]', 'bg-[#5096FF]', 'bg-[#46D38B]', 'bg-[#AF8BFF]', 'bg-[#FFC738]', 'bg-[#FF6B6B]',
-  'bg-[#4FC3F7]', 'bg-[#BA68C8]', 'bg-[#FF8A65]', 'bg-[#AED581]', 'bg-[#90A4AE]', 'bg-[#F06292]',
-  'bg-[#26A69A]', 'bg-[#7986CB]', 'bg-[#D4E157]', 'bg-[#FFD54F]', 'bg-[#A1887F]', 'bg-[#9CCC65]',
-  'bg-[#00ACC1]', 'bg-[#8E24AA]', 'bg-[#C0392B]', 'bg-[#16A085]', 'bg-[#2C3E50]', 'bg-[#F39C12]'
-];
-
-const ICON_OPTIONS = [
-  'fa-hotel', 'fa-passport', 'fa-users', 'fa-user', 'fa-cart-shopping', 'fa-suitcase', 
-  'fa-camera', 'fa-plane', 'fa-medicine-bottle', 'fa-plug', 'fa-umbrella', 'fa-shirt',
-  'fa-person-swimming', 'fa-mountain', 'fa-compass', 'fa-ticket', 'fa-credit-card', 
-  'fa-charging-station', 'fa-wine-glass', 'fa-map-pin', 'fa-car', 'fa-glasses', 'fa-wifi', 
-  'fa-battery-full', 'fa-baby-carriage', 'fa-baby', 'fa-paw', 'fa-bicycle', 'fa-bus', 
-  'fa-train', 'fa-ship', 'fa-map', 'fa-headphones', 'fa-mobile-screen', 'fa-laptop', 'fa-wallet'
+// 根據需求縮減為 9 大主題，並嚴格按照指定的 3x3 順序排列
+const PRESET_THEMES = [
+  // 第一列
+  { id: 't1', icon: 'fa-passport', color: 'bg-[#5096FF]', label: '證件' },
+  { id: 't2', icon: 'fa-hotel', color: 'bg-[#FF9946]', label: '住宿' },
+  { id: 't3', icon: 'fa-plane', color: 'bg-[#00ACC1]', label: '交通' },
+  // 第二列
+  { id: 't4', icon: 'fa-briefcase-medical', color: 'bg-[#FF6B6B]', label: '藥品' },
+  { id: 't5', icon: 'fa-plug', color: 'bg-[#90A4AE]', label: '電器' },
+  { id: 't6', icon: 'fa-shirt', color: 'bg-[#7986CB]', label: '衣物' },
+  // 第三列
+  { id: 't7', icon: 'fa-ticket', color: 'bg-[#26A69A]', label: '門票' },
+  { id: 't8', icon: 'fa-cart-shopping', color: 'bg-[#F06292]', label: '購物' },
+  { id: 't9', icon: 'fa-receipt', color: 'bg-[#8E24AA]', label: '其他' },
 ];
 
 const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
@@ -39,6 +39,9 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
   const [assigningItemId, setAssigningItemId] = useState<string | null>(null);
 
   const [catToDelete, setCatToDelete] = useState<ChecklistCategory | null>(null);
+  
+  // 記錄當前選中的主題 ID
+  const [selectedThemeId, setSelectedThemeId] = useState(PRESET_THEMES[0].id);
 
   const toggleCollapse = (id: string) => {
     const next = new Set(collapsedIds);
@@ -55,18 +58,37 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
     onUpdate({ checklistCategories: newCats });
   };
 
-  const handleSaveCategory = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleInitializeDefaults = () => {
+    const defaultCats: ChecklistCategory[] = PRESET_THEMES.map((t, idx) => ({
+      id: `cat_init_${Date.now()}_${idx}`,
+      label: t.label,
+      icon: t.icon,
+      color: t.color,
+      en: ''
+    }));
+    onUpdate({ checklistCategories: defaultCats });
+  };
+
+  const handleSaveCategory = (e: React.FormEvent) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const label = fd.get('label') as string;
-    const icon = fd.get('icon') as string;
-    const color = fd.get('color') as string;
-    if (!label) return;
+    const theme = PRESET_THEMES.find(t => t.id === selectedThemeId) || PRESET_THEMES[0];
+    
     if (editingCat) {
-      const updated = categories.map(c => c.id === editingCat.id ? { ...c, label, icon, color } : c);
+      const updated = categories.map(c => c.id === editingCat.id ? { 
+        ...c, 
+        label: theme.label, 
+        icon: theme.icon, 
+        color: theme.color 
+      } : c);
       onUpdate({ checklistCategories: updated });
     } else {
-      const newCat: ChecklistCategory = { id: `cat_${Date.now()}`, label, en: '', icon, color };
+      const newCat: ChecklistCategory = { 
+        id: `cat_${Date.now()}`, 
+        label: theme.label, 
+        en: '', 
+        icon: theme.icon, 
+        color: theme.color 
+      };
       onUpdate({ checklistCategories: [...categories, newCat] });
     }
     setIsCatModalOpen(false);
@@ -127,6 +149,19 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
     setCatToDelete(null);
   };
 
+  const openAddCat = () => {
+    setEditingCat(null);
+    setSelectedThemeId(PRESET_THEMES[0].id);
+    setIsCatModalOpen(true);
+  };
+
+  const openEditCat = (cat: ChecklistCategory) => {
+    setEditingCat(cat);
+    const theme = PRESET_THEMES.find(t => t.icon === cat.icon) || PRESET_THEMES[0];
+    setSelectedThemeId(theme.id);
+    setIsCatModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen p-5 pb-48 animate-fadeIn space-y-6 bg-[#F0F4F7] text-left overflow-x-hidden">
       <header className="px-1 mt-4 flex justify-between items-center">
@@ -136,9 +171,8 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
             <h2 className="text-3xl font-black text-stone-900 tracking-tighter leading-none">準備清單</h2>
           </div>
           <button 
-            onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }}
+            onClick={openAddCat}
             className="w-10 h-10 rounded-full bg-white text-[#00A5BF] shadow-lg border border-white flex items-center justify-center active:scale-95 transition-all hover:rotate-90"
-            title="新增分類"
           >
             <i className="fa-solid fa-plus text-sm"></i>
           </button>
@@ -157,12 +191,12 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
         <div className="bg-white rounded-[3rem] p-12 text-center border-2 border-dashed border-gray-100 animate-fadeIn">
           <i className="fa-solid fa-clipboard-list text-5xl text-gray-100 mb-6"></i>
           <h4 className="text-lg font-black text-stone-800 mb-2 tracking-tight">清單目前是空的</h4>
-          <p className="text-stone-300 font-bold mb-10 text-xs leading-relaxed">請先點擊上方「+」按鈕新增分類吧！</p>
+          <p className="text-stone-300 font-bold mb-10 text-xs leading-relaxed">一鍵開啟旅遊標準 9 大分類配置</p>
           <button 
-            onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }}
+            onClick={handleInitializeDefaults}
             className="bg-[#00A5BF] text-white px-10 py-4 rounded-2xl font-black shadow-lg uppercase tracking-widest text-[11px] active:scale-95 transition-all"
           >
-            + 建立第一個分類
+            + 建立標準分類
           </button>
         </div>
       ) : (
@@ -200,7 +234,7 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
                     {isManageMode ? (
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingCat(cat); setIsCatModalOpen(true); }}
+                          onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}
                           className="w-10 h-10 rounded-full bg-stone-50 text-[#00A5BF] flex items-center justify-center active:scale-90 transition-all border border-stone-100"
                         >
                           <i className="fa-solid fa-pen text-xs"></i>
@@ -397,40 +431,34 @@ const ChecklistView: React.FC<ChecklistViewProps> = ({ trip, onUpdate }) => {
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn">
           <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-md" onClick={() => setIsCatModalOpen(false)}></div>
           <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[85vh] no-scrollbar">
-            <div className="flex justify-between items-start mb-8">
-              <h3 className="text-2xl font-black text-stone-900 tracking-tighter">{editingCat ? '編輯清單分類' : '新增清單分類'}</h3>
+            <div className="flex justify-between items-start mb-10">
+              <h3 className="text-2xl font-black text-stone-900 tracking-tighter">{editingCat ? '變更分類主題' : '選擇清單類別'}</h3>
               <button onClick={() => setIsCatModalOpen(false)} className="text-stone-300"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onSubmit={handleSaveCategory} className="space-y-8">
-              <div>
-                <label className="text-[10px] font-black text-stone-300 uppercase block tracking-widest mb-4">分類名稱 (Label)</label>
-                <input name="label" required defaultValue={editingCat?.label} placeholder="例如：藥妝、隨身包" className="w-full bg-stone-50 rounded-2xl px-6 py-5 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-sm shadow-inner" />
+            <form onSubmit={handleSaveCategory} className="space-y-12">
+              <div className="grid grid-cols-3 gap-6">
+                {PRESET_THEMES.map(theme => (
+                  <button 
+                    key={theme.id}
+                    type="button"
+                    onClick={() => setSelectedThemeId(theme.id)}
+                    className={`flex flex-col items-center gap-3 p-4 rounded-3xl transition-all border-2 ${
+                      selectedThemeId === theme.id ? 'border-stone-900 bg-stone-50 scale-105 shadow-md' : 'border-transparent bg-stone-50/50'
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl ${theme.color} flex items-center justify-center text-white shadow-lg`}>
+                      <i className={`fa-solid ${theme.icon} text-2xl`}></i>
+                    </div>
+                    <span className={`text-[11px] font-black uppercase tracking-widest ${selectedThemeId === theme.id ? 'text-stone-900' : 'text-stone-300'}`}>
+                      {theme.label}
+                    </span>
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="text-[10px] font-black text-stone-300 uppercase mb-4 block tracking-widest">選擇圖示 (Icon)</label>
-                <div className="grid grid-cols-6 gap-3 max-h-48 overflow-y-auto no-scrollbar py-2 px-1">
-                  {ICON_OPTIONS.map(icon => (
-                    <label key={icon} className="cursor-pointer">
-                      <input type="radio" name="icon" value={icon} defaultChecked={editingCat ? editingCat.icon === icon : icon === 'fa-hotel'} className="hidden peer" />
-                      <div className="w-full aspect-square bg-stone-50 rounded-2xl flex items-center justify-center text-stone-200 peer-checked:bg-[#00A5BF] peer-checked:text-white transition-all shadow-sm">
-                        <i className={`fa-solid ${icon} text-lg`}></i>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-stone-300 uppercase mb-4 block tracking-widest">主題配色 (Theme Color)</label>
-                <div className="grid grid-cols-8 gap-3 max-h-32 overflow-y-auto no-scrollbar py-2 px-1">
-                  {COLOR_OPTIONS.map(color => (
-                    <label key={color} className="cursor-pointer">
-                      <input type="radio" name="color" value={color} defaultChecked={editingCat ? editingCat.color === color : color === 'bg-[#FF9946]'} className="hidden peer" />
-                      <div className={`w-full aspect-square rounded-xl ${color} border-4 border-transparent peer-checked:border-white peer-checked:shadow-lg transition-all`}></div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[11px] shadow-xl active:scale-95 transition-all tracking-[0.2em] uppercase">儲存分類變更</button>
+
+              <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[11px] shadow-xl active:scale-95 transition-all tracking-[0.2em] uppercase">
+                {editingCat ? '儲存變更' : '確認建立此分類'}
+              </button>
             </form>
           </div>
         </div>
