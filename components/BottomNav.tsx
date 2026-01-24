@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TripTab } from '../types';
 
@@ -23,15 +22,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentTab, setTab }) => {
             key={item.id}
             onClick={() => setTab(item.id)}
             className={`flex flex-col items-center gap-1.5 transition-all duration-300 relative ${
-              currentTab === item.id ? 'text-[#00A5BF]' : 'text-gray-300'
+              currentTab === item.id ? 'text-[#00A5BF]' : 'text-stone-500'
             }`}
           >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
               currentTab === item.id ? 'bg-[#00A5BF]/10 mb-1 scale-110 shadow-inner' : ''
             }`}>
-              <i className={`fa-solid ${item.icon} ${currentTab === item.id ? 'text-xl' : 'text-lg'}`}></i>
+              <i className={`fa-solid ${item.icon} ${currentTab === item.id ? 'text-2xl' : 'text-xl'}`}></i>
             </div>
-            <span className={`text-[10px] font-black tracking-widest ${currentTab === item.id ? 'opacity-100' : 'opacity-60'}`}>
+            <span className={`text-[14px] font-black tracking-widest ${currentTab === item.id ? 'opacity-100' : 'opacity-80'}`}>
               {item.label}
             </span>
           </button>
