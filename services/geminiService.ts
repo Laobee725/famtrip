@@ -1,17 +1,21 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { DayPlan, ItineraryEvent } from "../types";
 
 const getAiClient = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Please set it in GitHub Secrets.");
+  
+  console.log("[Gemini Auth Check]");
+  console.log("- Key exists:", !!apiKey);
+
+  if (!apiKey || apiKey === "undefined" || apiKey === "") {
+    const errorMsg = "Gemini API Key 尚未設定！\n請檢查 GitHub Secrets 並重新部署。";
+    alert(errorMsg);
+    throw new Error(errorMsg);
   }
   return new GoogleGenAI({ apiKey });
 };
 
-/**
- * 為旅遊故事本生成感性的前言
- */
 export const generateTripIntro = async (destination: string, season: string): Promise<string> => {
   try {
     const ai = getAiClient();
@@ -20,9 +24,9 @@ export const generateTripIntro = async (destination: string, season: string): Pr
       contents: `請為前往「${destination}」的「${season}」旅行寫一段極簡、感性、富有詩意的日系雜誌風格序言。字數在 60 字以內，繁體中文。`,
     });
     return response.text.trim();
-  } catch (e) {
+  } catch (e: any) {
     console.error("Gemini Intro Error:", e);
-    return "讓靈魂在異地的晨曦中醒來，是給生活最美的告白。";
+    throw new Error(e.message || "AI 序言生成失敗");
   }
 };
 
@@ -64,9 +68,9 @@ export const generateItinerary = async (destination: string, duration: number, p
       }
     });
     return JSON.parse(response.text || '[]');
-  } catch (e) {
+  } catch (e: any) {
     console.error("Gemini Itinerary Error:", e);
-    return [];
+    throw new Error(e.message || "AI 行程規劃失敗");
   }
 };
 
@@ -91,9 +95,9 @@ export const generateTripImage = async (prompt: string): Promise<string | null> 
       }
     }
     return null;
-  } catch (e) {
+  } catch (e: any) {
     console.error("AI Image Generation Error:", e);
-    return null;
+    throw new Error(e.message || "圖片生成失敗");
   }
 };
 
@@ -124,7 +128,7 @@ export const getDaySuggestions = async (city: string, existingEvents: string[], 
     return JSON.parse(response.text || '[]');
   } catch (e: any) {
     console.error("Gemini Suggestions Error:", e);
-    return [];
+    throw new Error(e.message || "靈感獲取失敗");
   }
 };
 
@@ -148,7 +152,7 @@ export const getStayWeather = async (city: string, date: string): Promise<{ weat
       }
     });
     return JSON.parse(response.text || '{"weather": "晴時多雲", "temp": 22}');
-  } catch (e) {
+  } catch (e: any) {
     return { weather: "晴時多雲", temp: 22 };
   }
 };

@@ -23,14 +23,19 @@ const getDB = (): Promise<IDBDatabase> => {
 
 export const dataService = {
   getLocalTrips: async (): Promise<Trip[]> => {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(DATA_KEY);
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const db = await getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(DATA_KEY);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      console.error("IndexedDB Error:", e);
+      return [];
+    }
   },
 
   saveToLocal: async (trips: Trip[]): Promise<void> => {
@@ -47,16 +52,12 @@ export const dataService = {
   getTrips: async (): Promise<Trip[]> => {
     const localTrips = await dataService.getLocalTrips();
     try {
-      console.log('[Sync] 正在嘗試連線到 Supabase...');
-      // Fix: Removing .timeout() as it is not supported by Supabase Postgrest client.
       const { data, error } = await supabase
         .from('trips')
-        .select('data');
+        .select('data')
+        .order('updated_at', { ascending: false });
       
-      if (error) {
-        console.warn(`[Sync] 伺服器回傳錯誤: ${error.message}`);
-        return localTrips;
-      }
+      if (error) throw error;
       
       if (data && data.length > 0) {
         const cloudTrips = data.map(item => item.data as Trip);
@@ -65,18 +66,12 @@ export const dataService = {
         const finalTrips = [...cloudTrips, ...onlyInLocal];
         
         await dataService.saveToLocal(finalTrips);
-        console.log('[Sync] 雲端同步成功！');
         return finalTrips;
       } else if (localTrips.length > 0) {
-        console.log('[Sync] 雲端無資料，嘗試將本地資料上傳備份...');
         await dataService.saveTrips(localTrips);
       }
-    } catch (e: any) {
-      if (e.message === 'Failed to fetch') {
-        console.error('[Sync] 連線被阻擋！請檢查：1. 是否開啟了 AdBlock 廣告攔截器？ 2. 網路是否正常？');
-      } else {
-        console.warn('[Sync] 網路異常，目前以離線模式運作。', e);
-      }
+    } catch (e) {
+      console.warn('[Sync] 暫時無法連線至雲端資料庫，使用本地資料。', e);
     }
     return localTrips;
   },
@@ -88,7 +83,6 @@ export const dataService = {
     try {
       const payload = trips.map(t => ({
         id: String(t.id),
-        invite_code: t.inviteCode || String(t.id).slice(-6).toUpperCase(),
         data: t,
         updated_at: new Date().toISOString()
       }));
@@ -99,7 +93,7 @@ export const dataService = {
           
       if (error) console.error('[Sync] 雲端備份失敗:', error.message);
     } catch (err) {
-      console.warn('[Sync] 無法連線至雲端進行備份。');
+      console.warn('[Sync] 備份失敗，請檢查網路連線。');
     }
   },
 
@@ -118,31 +112,15 @@ export const dataService = {
     return newTrips;
   },
 
-  joinTripByCode: async (code: string): Promise<Trip | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('trips')
-        .select('data')
-        .eq('invite_code', code.toUpperCase().trim())
-        .maybeSingle();
-        
-      if (error) throw error;
-      return data ? (data.data as Trip) : null;
-    } catch (err) {
-      return null;
-    }
-  },
-
   subscribeToChanges: (onUpdate: () => void, onStatusChange?: (status: string) => void) => {
     const channel = supabase
       .channel('public:trips')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => {
-        console.log('[Sync] 偵測到遠端更新，正在同步...');
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, (payload) => {
         onUpdate();
       })
       .subscribe((status) => {
-        console.log('[Sync] 即時連線狀態:', status);
         if (onStatusChange) onStatusChange(status);
+        if (status === 'SUBSCRIBED') onUpdate();
       });
     return channel;
   }
