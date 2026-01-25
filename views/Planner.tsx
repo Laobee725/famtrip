@@ -36,7 +36,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [finalImageUrl, setFinalImageUrl] = useState<string | undefined>(undefined);
   
-  // 懸浮按鈕狀態：包含垂直位置 Y 以及是否已收合 retracted
   const [fabY, setFabY] = useState<number | null>(null);
   const [isFabRetracted, setIsFabRetracted] = useState(false);
   const [isDraggingFab, setIsDraggingFab] = useState(false);
@@ -184,17 +183,13 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       canvas.height = 720;
       ctx.fillStyle = 'white'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
       const zone = cropZoneRef.current!;
       const rect = zone.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
-      
       const drawWidth = canvas.width * cropPos.scale;
       const drawHeight = (img.naturalHeight / img.naturalWidth) * drawWidth;
-      
       const drawX = cropPos.x * ratio;
       const drawY = cropPos.y * ratio;
-      
       ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
       setFinalImageUrl(canvas.toDataURL('image/jpeg', 0.8));
       setIsCropping(false);
@@ -260,17 +255,16 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     setActiveDay(targetDay);
   };
 
-  // FAB 拖動處理
   const handleFabTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
-    if (isFabRetracted) return; // 收合狀態下不支援垂直拖動，點擊即可展開
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    if (isFabRetracted) return;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     setIsDraggingFab(false); 
-    fabStartPos.current = { y: clientY, currentY: fabY || window.innerHeight - 192 }; // bottom-48 換算
+    fabStartPos.current = { y: clientY, currentY: fabY || window.innerHeight - 192 };
   };
 
   const handleFabTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (isFabRetracted) return;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     const deltaY = clientY - fabStartPos.current.y;
     if (Math.abs(deltaY) > 5) {
       setIsDraggingFab(true);
@@ -285,13 +279,10 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       e.stopPropagation();
       return;
     }
-    
-    // 如果是收合狀態，則先展開
     if (isFabRetracted) {
       setIsFabRetracted(false);
       return;
     }
-
     setEditingEvent({ day: activeDay, event: { id: '', title: '', time: '10:00', location: '', type: 'attraction' } });
     setFinalImageUrl(undefined);
     setIsEventModalOpen(true);
@@ -306,7 +297,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
 
   return (
     <div className="min-h-screen pb-40 animate-fadeIn bg-[#F0F4F7]">
-      {/* 頂部日期選單 */}
       <div className="bg-white px-6 pt-4 pb-2 sticky top-0 z-40 border-b border-gray-100">
         <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
           {daysArray.map(d => {
@@ -324,7 +314,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       </div>
 
       <div className="p-6 space-y-6">
-        {/* 本日概覽 */}
         {!isBatchMode && (
           <section className="bg-white rounded-[2.5rem] p-8 jp-shadow border border-white transition-all text-left">
             <div className="flex justify-between items-start mb-6">
@@ -388,7 +377,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
           </button>
         </div>
 
-        {/* 時間軸區域 */}
         <div className="relative">
           {currentDayPlan.events.length === 0 ? (
             <div className="bg-white rounded-[2.5rem] p-10 text-center border-2 border-dashed border-gray-100 animate-fadeIn">
@@ -429,11 +417,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                        {event.imageUrl && (
                          <div className="w-full h-36 relative">
                             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-                            {event.referenceUrl && (
-                               <a href={event.referenceUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-md text-[#00A5BF] flex items-center justify-center shadow-lg hover:bg-[#00A5BF] hover:text-white transition-all">
-                                  <i className="fa-solid fa-link text-xs"></i>
-                               </a>
-                            )}
                          </div>
                        )}
                        <div className="p-6 relative">
@@ -459,66 +442,91 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                 <h3 className="text-xl font-black text-gray-800 tracking-tighter">旅途隨記</h3>
                 <span className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Scrapbook Notes</span>
               </div>
-              
-              <div className="flex items-center gap-1 bg-white rounded-xl px-1 py-1 shadow-sm border border-stone-100">
-                <button 
-                  onClick={() => execCmd('bold')} 
-                  className="w-8 h-8 rounded-lg text-stone-600 hover:bg-stone-50 hover:text-[#00A5BF] transition-all flex items-center justify-center"
-                  title="粗體"
-                >
-                  <i className="fa-solid fa-bold text-xs"></i>
-                </button>
-              </div>
             </div>
             
             <div className="relative group">
-              <div className="absolute -top-3 left-10 z-20 bg-[#00A5BF]/70 text-white px-4 py-1 text-[8px] font-black uppercase tracking-[0.2em] shadow-sm transform -rotate-1 skew-x-12">
-                SCRAPBOOK
-              </div>
-
               <div className="bg-[#FDFBF7] rounded-[2.5rem] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-stone-100 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }}></div>
-                
                 <div
                   ref={editorRef}
                   contentEditable
                   className="w-full bg-transparent border-none outline-none font-black text-stone-700 text-lg leading-relaxed min-h-[220px] placeholder:text-stone-200 relative z-10 text-left focus:ring-0"
                   onBlur={(e) => handleUpdateDayPlan({ notes: (e.target as HTMLDivElement).innerHTML })}
-                  data-placeholder="在此自由紀錄網址、景點筆記、待吃清單或是今日感言..."
+                  data-placeholder="在此自由紀錄網址、景點筆記..."
                 ></div>
-
-                {/* 偵測到的網址按鈕區 */}
-                {detectedLinks.length > 0 && (
-                  <div className="mt-6 flex flex-wrap gap-2 relative z-10 animate-fadeIn">
-                     {detectedLinks.map((link, i) => (
-                       <a 
-                         key={i} 
-                         href={link.fullUrl} 
-                         target="_blank" 
-                         rel="noopener noreferrer"
-                         className="bg-[#00A5BF] text-white px-4 py-2 rounded-xl text-[11px] font-black flex items-center gap-2 shadow-md active:scale-90 transition-all border border-white/20"
-                       >
-                         <i className="fa-solid fa-link"></i>
-                         <span className="truncate max-w-[100px]">{link.label}</span>
-                       </a>
-                     ))}
-                  </div>
-                )}
-
-                <div className="mt-4 flex justify-between items-center text-[9px] font-black text-stone-300 uppercase tracking-widest border-t border-stone-50 pt-4">
-                  <span>Day {activeDay} · Archive</span>
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-pencil opacity-40"></i>
-                    <span>點擊空白處即存檔</span>
-                  </div>
-                </div>
               </div>
             </div>
           </section>
         )}
       </div>
 
-      {/* 刪除對話框等 Modal */}
+      {isBatchMode && selectedEventIds.size > 0 && (
+        <div className="fixed bottom-24 left-6 right-6 z-[120] bg-white rounded-[2rem] p-4 shadow-2xl border border-orange-100 flex items-center justify-between animate-slideUp">
+          <div className="flex flex-col pl-4">
+             <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">已選取 {selectedEventIds.size} 個項目</span>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setIsMoveModalOpen(true)} className="bg-blue-500 text-white px-5 py-3 rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
+               移動至其他天
+            </button>
+            <button onClick={() => setIsBatchDeleteModalOpen(true)} className="bg-red-500 text-white px-5 py-3 rounded-xl text-xs font-black shadow-lg shadow-red-500/20 active:scale-95 transition-all">
+               刪除所選
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 移動至其他天對話框 - 更新為包含日期與星期 */}
+      {isMoveModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setIsMoveModalOpen(false)}></div>
+          <div className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-slideUp text-center">
+            <h4 className="text-xl font-black text-gray-800 mb-6">移動到哪一天？</h4>
+            <div className="grid grid-cols-3 gap-3 max-h-80 overflow-y-auto p-2 no-scrollbar">
+               {daysArray.map(d => {
+                 const { dateStr, dayName } = formatDate(d);
+                 const isCurrent = d === activeDay;
+                 return (
+                   <button 
+                     key={d} 
+                     onClick={() => handleBatchMove(d)} 
+                     disabled={isCurrent} 
+                     className={`py-3 rounded-2xl font-black transition-all flex flex-col items-center justify-center border-2 ${
+                       isCurrent 
+                        ? 'bg-gray-50 border-gray-100 text-gray-300' 
+                        : 'bg-white border-blue-50 text-blue-500 active:scale-95'
+                     }`}
+                   >
+                      <span className="text-[9px] uppercase tracking-tighter mb-0.5">Day {d}</span>
+                      <span className="text-sm">{dateStr}</span>
+                      <span className="text-[9px] opacity-60 font-bold">{isCurrent ? '當前' : dayName}</span>
+                   </button>
+                 );
+               })}
+            </div>
+            <button onClick={() => setIsMoveModalOpen(false)} className="w-full mt-8 bg-gray-50 text-gray-400 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all tracking-widest uppercase">關閉</button>
+          </div>
+        </div>
+      )}
+
+      {/* 批次刪除對話框 */}
+      {isBatchDeleteModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setIsBatchDeleteModalOpen(false)}></div>
+          <div className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-8 shadow-2xl animate-slideUp text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl shadow-inner">
+              <i className="fa-solid fa-trash-can"></i>
+            </div>
+            <h4 className="text-lg font-black text-gray-800 mb-2">確定刪除選中的項目？</h4>
+            <p className="text-xs text-gray-400 font-bold leading-relaxed mb-8">這將一次移除 {selectedEventIds.size} 個行程項目。</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmBatchDelete} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all">確認批次刪除</button>
+              <button onClick={() => setIsBatchDeleteModalOpen(false)} className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all">再想想看</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 單一項目刪除對話框 */}
       {eventToDeleteId && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setEventToDeleteId(null)}></div>
@@ -527,7 +535,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
               <i className="fa-solid fa-circle-exclamation"></i>
             </div>
             <h4 className="text-lg font-black text-gray-800 mb-2">確定要刪除嗎？</h4>
-            <p className="text-xs text-gray-400 font-bold leading-relaxed mb-8">這個行程項目將會從時間軸消失，這個動作不可逆喔！</p>
+            <p className="text-xs text-gray-400 font-bold leading-relaxed mb-8">這個行程項目將會從時間軸消失。</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteEvent} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all">狠心刪除</button>
               <button onClick={() => setEventToDeleteId(null)} className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all">再想想看</button>
@@ -536,7 +544,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
         </div>
       )}
 
-      {/* 垂直可拖移且可橫向收合的懸浮按鈕 */}
       {!isBatchMode && (
         <div 
           style={{ 
@@ -549,25 +556,21 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
           onMouseDown={handleFabTouchStart}
           onMouseMove={handleFabTouchMove}
         >
-          {/* 收合按鈕的「拉把」箭頭 */}
           <button 
             onClick={toggleRetract}
-            className={`w-8 h-12 bg-[#00A5BF]/20 backdrop-blur-md rounded-l-2xl flex items-center justify-center text-[#00A5BF] transition-opacity ${isFabRetracted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            className={`w-8 h-12 bg-[#00A5BF]/20 backdrop-blur-md rounded-l-2xl flex items-center justify-center text-[#00A5BF] transition-opacity ${isFabRetracted ? 'opacity-100' : 'opacity-0'}`}
           >
             <i className={`fa-solid ${isFabRetracted ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`}></i>
           </button>
-
-          {/* 主要 FAB */}
           <button 
             onClick={handleFabClick} 
-            className={`w-16 h-16 rounded-[1.75rem] bg-[#00A5BF] text-white flex items-center justify-center text-3xl shadow-[0_12px_24px_rgba(0,165,191,0.4)] active:scale-90 transition-all cursor-pointer border-2 border-white/40 ring-4 ring-[#00A5BF]/10 mr-8 ${isFabRetracted ? 'opacity-50' : 'opacity-100'}`}
+            className={`w-16 h-16 rounded-[1.75rem] bg-[#00A5BF] text-white flex items-center justify-center text-3xl shadow-[0_12px_24px_rgba(0,165,191,0.4)] active:scale-90 transition-all cursor-pointer border-2 border-white/40 mr-8 ${isFabRetracted ? 'opacity-50' : 'opacity-100'}`}
           >
             <i className="fa-solid fa-plus pointer-events-none"></i>
           </button>
         </div>
       )}
 
-      {/* 其他所有 Modal 邏輯保持不變 */}
       {isCropping && rawImage && (
         <div className="fixed inset-0 z-[250] bg-black/95 flex flex-col items-center justify-center p-6 animate-fadeIn text-center">
            <div className="w-full max-md space-y-8">
@@ -646,7 +649,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                     <label className="text-[10px] font-black text-stone-300 uppercase block mb-2">天數</label>
                     <div className="bg-gray-100 rounded-2xl px-5 py-3 font-black text-sm text-stone-400 flex justify-between items-center h-[46px]">
                        <span>Day {editingEvent.day}</span>
-                       <i className="fa-solid fa-lock text-[8px]"></i>
                     </div>
                   </div>
                 </div>

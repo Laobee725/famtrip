@@ -3,11 +3,6 @@ import { Trip, Member, TripStay } from '../types';
 import { getStayWeather } from '../services/geminiService';
 import { TRAVEL_QUOTES } from '../constants/quotes';
 
-interface TripOverviewProps {
-  trip: Trip | null;
-  onUpdate: (updates: Partial<Trip>) => void;
-}
-
 const AVATAR_OPTIONS = [
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Felix&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Aneka&backgroundColor=f0f4f7',
@@ -17,6 +12,15 @@ const AVATAR_OPTIONS = [
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Coco&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Mochi&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Toby&backgroundColor=f0f4f7',
+  // 新增 8 個頭像，包含類動物風格
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Willow&backgroundColor=f0f4f7', // 狗狗感
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Jasper&backgroundColor=f0f4f7', // 貓貓感
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Bear&backgroundColor=f0f4f7',   // 熊熊感
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Lucky&backgroundColor=f0f4f7',  // 小兔感
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Sasha&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Ginger&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Pepper&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Buddy&backgroundColor=f0f4f7',
 ];
 
 const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
@@ -63,7 +67,6 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      // 封面固定 3:4 比例
       canvas.width = 1200; 
       canvas.height = 1600;
       ctx.fillStyle = 'white'; 
@@ -159,7 +162,6 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
             <div className="absolute inset-0 p-8 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent">
               <div className="space-y-4 text-left">
                 <div className="space-y-2 text-left">
-                  {/* 字級調整：text-4xl 確保約 10 個中文字能呈現單行 */}
                   <h2 className="text-4xl font-black text-white tracking-tighter leading-[1.1] drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] text-left">{trip.title}</h2>
                   <div className="h-1.5 w-12 bg-[#00A5BF] shadow-lg"></div>
                 </div>
@@ -234,13 +236,13 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
              </button>
           </div>
           <div className="bg-white p-8 rounded-[2.5rem] jp-shadow border border-white">
-             <div className="flex flex-wrap gap-8 justify-start">
+             <div className="flex flex-wrap gap-6 justify-start">
                 {trip.members.map(m => (
                   <div key={m.id} onClick={() => openEditMember(m)} className="flex flex-col items-center gap-3 group/member cursor-pointer active:scale-90 transition-all">
-                    <div className="w-16 h-16 rounded-[1.2rem] bg-stone-50 p-0.5 border-2 border-transparent group-hover/member:border-[#00A5BF] transition-all overflow-hidden shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-stone-50 p-0.5 border-2 border-transparent group-hover/member:border-[#00A5BF] transition-all overflow-hidden shadow-sm">
                       <img src={m.avatar || AVATAR_OPTIONS[0]} className="w-full h-full object-contain" />
                     </div>
-                    <span className="text-[12px] font-black text-gray-800 tracking-widest uppercase">{m.name}</span>
+                    <span className="text-[11px] font-black text-gray-800 tracking-widest uppercase">{m.name}</span>
                   </div>
                 ))}
              </div>
@@ -284,25 +286,25 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
       {isMemberModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-md" onClick={() => setIsMemberModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[90vh] no-scrollbar">
-            <div className="flex justify-between items-center mb-10">
+          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-8 pb-10 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[90vh] no-scrollbar">
+            <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-black text-stone-900 tracking-tighter">{editingMember ? '編輯成員' : '新增成員'}</h3>
               <button onClick={() => setIsMemberModalOpen(false)} className="text-stone-300"><i className="fa-solid fa-xmark text-lg"></i></button>
             </div>
             
-            <form onSubmit={handleSaveMember} className="space-y-10">
+            <form onSubmit={handleSaveMember} className="space-y-8">
               <div className="flex flex-col items-center">
-                <div className="w-28 h-28 rounded-[2.5rem] bg-stone-50 p-1 border-4 border-[#00A5BF] shadow-lg mb-8 overflow-hidden">
+                <div className="w-24 h-24 rounded-[2rem] bg-stone-50 p-1 border-4 border-[#00A5BF] shadow-lg mb-6 overflow-hidden">
                   <img src={selectedAvatar} className="w-full h-full object-contain" />
                 </div>
                 
-                <div className="grid grid-cols-4 gap-3 w-full max-w-[280px]">
+                <div className="grid grid-cols-4 gap-2.5 w-full">
                   {AVATAR_OPTIONS.map(url => (
                     <button 
                       key={url} 
                       type="button"
                       onClick={() => setSelectedAvatar(url)}
-                      className={`aspect-square rounded-2xl p-1.5 transition-all ${selectedAvatar === url ? 'bg-[#00A5BF] scale-110 shadow-md ring-2 ring-white' : 'bg-gray-50 opacity-40 hover:opacity-100'}`}
+                      className={`aspect-square rounded-xl p-1 transition-all ${selectedAvatar === url ? 'bg-[#00A5BF] scale-110 shadow-md ring-2 ring-white' : 'bg-gray-50 opacity-40 hover:opacity-100'}`}
                     >
                       <img src={url} className="w-full h-full object-contain" />
                     </button>
@@ -311,14 +313,14 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
               </div>
 
               <div>
-                <label className="text-[12px] font-black text-stone-300 uppercase block tracking-widest mb-3">成員名稱 (NAME)</label>
-                <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-8 py-5 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-stone-800 shadow-inner text-lg" />
+                <label className="text-[11px] font-black text-stone-300 uppercase block tracking-widest mb-2.5">成員名稱 (NAME)</label>
+                <input autoFocus required value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="成員名稱" className="w-full bg-stone-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-stone-800 shadow-inner" />
               </div>
 
-              <div className="flex flex-col gap-4">
-                <button type="submit" className="w-full bg-stone-900 text-white py-6 rounded-full font-black text-[14px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">儲存變更</button>
+              <div className="flex flex-col gap-3">
+                <button type="submit" className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">儲存變更</button>
                 {editingMember && (
-                  <button type="button" onClick={handleDeleteMember} className="w-full py-4 text-red-500 font-black text-[12px] uppercase tracking-widest hover:bg-red-50 rounded-full transition-colors">
+                  <button type="button" onClick={handleDeleteMember} className="w-full py-3 text-red-500 font-black text-[11px] uppercase tracking-widest hover:bg-red-50 rounded-full transition-colors">
                     <i className="fa-solid fa-trash-can mr-2"></i> 刪除此成員
                   </button>
                 )}
@@ -348,5 +350,10 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
     </div>
   );
 };
+
+interface TripOverviewProps {
+  trip: Trip | null;
+  onUpdate: (updates: Partial<Trip>) => void;
+}
 
 export default TripOverview;
