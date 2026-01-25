@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 
@@ -11,6 +10,14 @@ const AVATAR_OPTIONS = [
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Coco&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Mochi&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Toby&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Willow&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Jasper&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Bear&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Lucky&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Sasha&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Ginger&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Pepper&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Buddy&backgroundColor=f0f4f7',
 ];
 
 interface OnboardingModalProps {
@@ -44,10 +51,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) => {
            <div className="w-32 h-32 mx-auto rounded-[2.5rem] bg-white shadow-xl border-4 border-white overflow-hidden p-2">
               <img src={avatar} className="w-full h-full object-contain" />
            </div>
-           <div className="mt-8 grid grid-cols-4 gap-3">
+           <div className="mt-8 grid grid-cols-4 gap-3 max-h-40 overflow-y-auto p-2 no-scrollbar">
               {AVATAR_OPTIONS.map(url => (
                 <button 
                   key={url} 
+                  type="button"
                   onClick={() => setAvatar(url)}
                   className={`aspect-square rounded-2xl p-1.5 transition-all ${avatar === url ? 'bg-[#00A5BF] scale-110 shadow-lg' : 'bg-white opacity-40 hover:opacity-100'}`}
                 >
