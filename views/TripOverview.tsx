@@ -12,11 +12,10 @@ const AVATAR_OPTIONS = [
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Coco&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Mochi&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Toby&backgroundColor=f0f4f7',
-  // 新增 8 個頭像，包含類動物風格
-  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Willow&backgroundColor=f0f4f7', // 狗狗感
-  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Jasper&backgroundColor=f0f4f7', // 貓貓感
-  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Bear&backgroundColor=f0f4f7',   // 熊熊感
-  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Lucky&backgroundColor=f0f4f7',  // 小兔感
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Willow&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Jasper&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Bear&backgroundColor=f0f4f7',
+  'https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Lucky&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Sasha&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Ginger&backgroundColor=f0f4f7',
   'https://api.dicebear.com/7.x/lorelei/svg?seed=Pepper&backgroundColor=f0f4f7',
@@ -284,9 +283,9 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
       )}
 
       {isMemberModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center animate-fadeIn text-left">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-md" onClick={() => setIsMemberModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-8 pb-10 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[90vh] no-scrollbar">
+          <div className="relative w-full max-w-md bg-white rounded-[3rem] p-8 shadow-2xl animate-slideUp text-left overflow-y-auto max-h-[90vh] no-scrollbar">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-black text-stone-900 tracking-tighter">{editingMember ? '編輯成員' : '新增成員'}</h3>
               <button onClick={() => setIsMemberModalOpen(false)} className="text-stone-300"><i className="fa-solid fa-xmark text-lg"></i></button>
@@ -331,9 +330,9 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
       )}
 
       {isAddingStay && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fadeIn text-left">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn text-left">
           <div className="absolute inset-0 bg-stone-900/50 backdrop-blur-sm" onClick={() => setIsAddingStay(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[4rem] p-10 shadow-2xl animate-slideUp text-left">
+          <div className="relative w-full max-w-md bg-white rounded-[3rem] p-10 shadow-2xl animate-slideUp text-left">
             <h3 className="text-2xl font-black text-stone-900 mb-8 tracking-tighter text-left">行程目的地</h3>
             <form onSubmit={handleSaveStay} className="space-y-6">
               <input required placeholder="目的地城市" value={stayForm.city} onChange={e => setStayForm({...stayForm, city: e.target.value})} className="w-full bg-stone-50 rounded-3xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] text-lg" />
@@ -342,7 +341,7 @@ const TripOverview: React.FC<TripOverviewProps> = ({ trip, onUpdate }) => {
                  <input type="date" required value={stayForm.startDate} onChange={e => setStayForm({...stayForm, startDate: e.target.value})} className="bg-stone-50 px-3 py-4 rounded-2xl text-[11px] font-black outline-none" />
                  <input type="date" required value={stayForm.endDate} onChange={e => setStayForm({...stayForm, endDate: e.target.value})} className="bg-stone-50 px-3 py-4 rounded-2xl text-[11px] font-black outline-none" />
               </div>
-              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[14px] uppercase tracking-widest">儲存目的地</button>
+              <button className="w-full bg-stone-900 text-white py-5 rounded-full font-black text-[14px] uppercase tracking-widest mt-4">儲存目的地</button>
             </form>
           </div>
         </div>
