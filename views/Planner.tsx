@@ -64,7 +64,6 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
     const matches = currentDayPlan.notes.match(urlRegex);
     if (!matches) return [];
-    // Fix: Explicitly type url as string to avoid 'unknown' type error in some TS environments
     return [...new Set(matches)].map((url: string) => {
       let fullUrl = url;
       if (url.startsWith('www.')) fullUrl = 'https://' + url;
@@ -345,25 +344,25 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-               <div className="bg-indigo-50/40 p-3.5 rounded-2xl flex items-center gap-3 border border-indigo-100/30">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-sm ${dayInfo.hotel === '家' ? 'bg-emerald-500' : 'bg-indigo-500'} text-white`}>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+               <div className="bg-indigo-50/40 p-4 rounded-2xl flex items-start gap-3 border border-indigo-100/30">
+                  <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${dayInfo.hotel === '家' ? 'bg-emerald-500' : 'bg-indigo-500'} text-white`}>
                     <i className={`fa-solid ${dayInfo.hotel === '家' ? 'fa-house-chimney' : 'fa-bed'} text-xs`}></i>
                   </div>
-                  <div className="overflow-hidden">
-                    <p className="text-[8px] font-black text-indigo-300 uppercase leading-none mb-1">{dayInfo.hotel === '家' ? 'Dest' : 'Stay'}</p>
-                    <p className="text-[11px] font-black text-indigo-900 truncate">{dayInfo.hotel}</p>
+                  <div className="min-w-0">
+                    <p className="text-[8px] font-black text-indigo-300 uppercase leading-none mb-1.5">{dayInfo.hotel === '家' ? 'Dest' : 'Stay'}</p>
+                    <p className="text-[11px] font-black text-indigo-900 leading-tight break-words">{dayInfo.hotel}</p>
                   </div>
                </div>
-               <div onClick={() => { setTempTransport(currentDayPlan.transportMode || ''); setIsDayEditOpen(true); }} className="bg-blue-50/40 p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-95 transition-all border border-blue-100/30">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm">
+               <div onClick={() => { setTempTransport(currentDayPlan.transportMode || ''); setIsDayEditOpen(true); }} className="bg-blue-50/40 p-4 rounded-2xl flex items-start gap-3 cursor-pointer active:scale-95 transition-all border border-blue-100/30 relative">
+                  <div className="w-9 h-9 shrink-0 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm">
                     <i className="fa-solid fa-route text-xs"></i>
                   </div>
-                  <div className="overflow-hidden flex-grow">
-                    <p className="text-[8px] font-black text-blue-300 uppercase leading-none mb-1">Trans</p>
-                    <p className="text-[11px] font-black text-blue-900 truncate">{currentDayPlan.transportMode || '尚未設定'}</p>
+                  <div className="min-w-0 flex-grow pr-3">
+                    <p className="text-[8px] font-black text-blue-300 uppercase leading-none mb-1.5">Trans</p>
+                    <p className="text-[11px] font-black text-blue-900 leading-tight break-words">{currentDayPlan.transportMode || '尚未設定'}</p>
                   </div>
-                  <i className="fa-solid fa-chevron-right text-[8px] text-blue-200"></i>
+                  <i className="fa-solid fa-chevron-right text-[8px] text-blue-200 absolute top-4 right-4"></i>
                </div>
             </div>
           </section>
