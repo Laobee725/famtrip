@@ -298,29 +298,28 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
         )}
       </div>
 
-      {/* 新增/編輯 Modal */}
+      {/* 新增/編輯 Modal - 優化層級與底部內邊距 */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fadeIn">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-[3.5rem] p-8 pb-12 shadow-2xl animate-slideUp max-h-[95vh] overflow-y-auto no-scrollbar text-left">
+          <div className="relative w-full max-w-md bg-white rounded-[3rem] p-8 shadow-2xl animate-slideUp max-h-[90vh] overflow-y-auto no-scrollbar text-left border border-white">
              <div className="flex justify-between items-center mb-8">
                <h3 className="text-2xl font-black text-gray-800 tracking-tighter">{editingExpenseId ? '編輯支出' : '新增支出'}</h3>
-               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 text-gray-300 flex items-center justify-center"><i className="fa-solid fa-xmark"></i></button>
+               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 text-gray-300 flex items-center justify-center transition-transform active:scale-90"><i className="fa-solid fa-xmark"></i></button>
              </div>
              
-             <div className="space-y-8">
+             <div className="space-y-8 pb-32"> {/* 增加底部內邊距確保按鈕不被遮擋 */}
                 <div>
                   <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">標題</label>
-                  <input autoFocus placeholder="例如：藥妝店購物" className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" 
+                  <input autoFocus placeholder="例如：藥妝店購物" className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] shadow-inner" 
                          value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
                 </div>
 
                 <div className="grid grid-cols-12 gap-4">
                   <div className="col-span-4">
                     <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">幣別</label>
-                    <select className="w-full bg-gray-50 rounded-2xl px-4 py-4 font-black border-none text-xs outline-none focus:ring-2 focus:ring-[#00A5BF] appearance-none"
+                    <select className="w-full bg-gray-50 rounded-2xl px-4 py-4 font-black border-none text-xs outline-none focus:ring-2 focus:ring-[#00A5BF] appearance-none shadow-inner"
                             value={form.currency} onChange={e => {
-                              // 切換幣別時，依據目前總額重新分攤 (會適用新的小數點規則)
                               const nextSplits = autoDistribute(form.amount, form.splits);
                               setForm({...form, currency: e.target.value, splits: nextSplits});
                             }}>
@@ -329,7 +328,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                   </div>
                   <div className="col-span-8">
                     <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">總金額</label>
-                    <input type="number" step="0.1" placeholder="0.0" className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF]" 
+                    <input type="number" step="0.1" placeholder="0.0" className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none outline-none focus:ring-2 focus:ring-[#00A5BF] shadow-inner" 
                            value={form.amount} onChange={e => handleTotalAmountChange(e.target.value)} />
                   </div>
                 </div>
@@ -337,14 +336,14 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">付款人</label>
-                    <select className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none text-xs outline-none focus:ring-2 focus:ring-[#00A5BF]" 
+                    <select className="w-full bg-gray-50 rounded-2xl px-6 py-4 font-black border-none text-xs outline-none focus:ring-2 focus:ring-[#00A5BF] shadow-inner" 
                            value={form.payerId} onChange={e => setForm({...form, payerId: e.target.value})}>
                       {trip.members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-gray-300 uppercase block mb-3 tracking-widest">日期</label>
-                    <input type="date" className="w-full bg-gray-50 rounded-2xl px-3 py-4 font-black border-none text-[11px] outline-none" 
+                    <input type="date" className="w-full bg-gray-50 rounded-2xl px-3 py-4 font-black border-none text-[11px] outline-none shadow-inner" 
                            value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
                   </div>
                 </div>
@@ -368,7 +367,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                         {isBalanced ? '已平衡' : `待補足: ${diff > 0 ? '+' : ''}${diff}`}
                       </div>
                    </div>
-                   <div className="bg-gray-50 rounded-[2.5rem] p-6 space-y-3">
+                   <div className="bg-gray-50 rounded-[2.5rem] p-6 space-y-3 shadow-inner">
                       {form.splits.map(s => {
                         const m = trip.members.find(mem => mem.id === s.memberId)!;
                         return (
@@ -395,7 +394,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                     儲存變更
                   </button>
                   {editingExpenseId && (
-                    <button onClick={() => setExpenseToDelete(trip.expenses.find(e => e.id === editingExpenseId)!)} className="text-red-400 font-black text-[10px] uppercase tracking-widest pt-2 text-center">
+                    <button onClick={() => setExpenseToDelete(trip.expenses.find(e => e.id === editingExpenseId)!)} className="text-red-400 font-black text-[10px] uppercase tracking-widest pt-2 text-center transition-colors hover:text-red-600">
                       <i className="fa-solid fa-trash-can mr-2"></i> 刪除此筆紀錄
                     </button>
                   )}
@@ -405,7 +404,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
         </div>
       )}
 
-      {/* 結算彈窗 */}
+      {/* 結算彈窗 - 優化層級 */}
       {isSettling && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-xl" onClick={() => setIsSettling(false)}></div>
@@ -418,7 +417,7 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
              
              <div className="space-y-8 max-h-96 overflow-y-auto no-scrollbar py-2">
                 {calculateMultiCurrencySettlement().length === 0 ? (
-                  <p className="text-gray-400 font-bold py-10 italic">目前帳目非常平衡！不需要任何還款。</p>
+                  <p className="text-gray-400 font-bold py-10 italic text-sm">目前帳目非常平衡！不需要任何還款。</p>
                 ) : (
                   calculateMultiCurrencySettlement().map((res, gIdx) => (
                     <div key={res.currency} className="space-y-4 animate-fadeIn" style={{ animationDelay: `${gIdx * 0.1}s` }}>
@@ -451,26 +450,26 @@ const WalletView: React.FC<WalletViewProps> = ({ trip, onUpdate }) => {
                 )}
              </div>
              
-             <button onClick={() => setIsSettling(false)} className="w-full mt-10 bg-gray-900 text-white py-5 rounded-full font-black text-[10px] shadow-xl uppercase tracking-widest active:scale-95 transition-all">
+             <button onClick={() => setIsSettling(false)} className="w-full mt-10 bg-gray-900 text-white py-5 rounded-full font-black text-[11px] shadow-xl uppercase tracking-widest active:scale-95 transition-all">
                 確認完畢
              </button>
           </div>
         </div>
       )}
 
-      {/* 刪除確認 */}
+      {/* 刪除確認 - 優化層級 */}
       {expenseToDelete && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setExpenseToDelete(null)}></div>
-          <div className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-10 shadow-2xl animate-slideUp text-center">
-            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
+          <div className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-10 shadow-2xl animate-slideUp text-center border border-white">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl shadow-inner">
               <i className="fa-solid fa-circle-exclamation"></i>
             </div>
             <h4 className="text-lg font-black text-gray-800 mb-2">確定要刪除嗎？</h4>
             <p className="text-[11px] text-gray-400 font-bold leading-relaxed mb-8">「{expenseToDelete.title}」紀錄將永久移除。</p>
             <div className="flex flex-col gap-3">
-              <button onClick={confirmDelete} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] shadow-lg active:scale-95 transition-all uppercase tracking-widest">確定刪除</button>
-              <button onClick={() => setExpenseToDelete(null)} className="w-full bg-stone-50 text-stone-400 py-4 rounded-2xl font-black text-[10px] active:scale-95 transition-all uppercase tracking-widest">取消返回</button>
+              <button onClick={confirmDelete} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-[11px] shadow-lg active:scale-95 transition-all uppercase tracking-widest">確定刪除</button>
+              <button onClick={() => setExpenseToDelete(null)} className="w-full bg-stone-50 text-stone-400 py-4 rounded-2xl font-black text-[11px] active:scale-95 transition-all uppercase tracking-widest">取消返回</button>
             </div>
           </div>
         </div>

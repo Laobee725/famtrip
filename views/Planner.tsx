@@ -22,6 +22,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
   const [editingEvent, setEditingEvent] = useState<{ event: ItineraryEvent, day: number } | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isDayEditOpen, setIsDayEditOpen] = useState(false);
+  const [tempTransport, setTempTransport] = useState(''); // 暫存交通方式輸入
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -63,7 +64,8 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
     const matches = currentDayPlan.notes.match(urlRegex);
     if (!matches) return [];
-    return [...new Set(matches)].map(url => {
+    // Fix: Explicitly type url as string to avoid 'unknown' type error in some TS environments
+    return [...new Set(matches)].map((url: string) => {
       let fullUrl = url;
       if (url.startsWith('www.')) fullUrl = 'https://' + url;
       let label = url;
@@ -216,7 +218,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
     };
     let newItinerary = [...selectedTrip.itinerary];
     newItinerary = newItinerary.map(plan => ({ ...plan, events: plan.events.filter(ev => ev.id !== updatedEvent.id) }));
-    const targetIdx = newItinerary.findIndex(p => p.day === editingEvent.day);
+    const targetIdx = newItinerary.findIndex(p => p.day === activeDay);
     if (targetIdx > -1) {
       newItinerary[targetIdx].events = [...newItinerary[targetIdx].events, updatedEvent].sort((a,b) => a.time.localeCompare(b.time));
     } else {
@@ -353,7 +355,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
                     <p className="text-[11px] font-black text-indigo-900 truncate">{dayInfo.hotel}</p>
                   </div>
                </div>
-               <div onClick={() => setIsDayEditOpen(true)} className="bg-blue-50/40 p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-95 transition-all border border-blue-100/30">
+               <div onClick={() => { setTempTransport(currentDayPlan.transportMode || ''); setIsDayEditOpen(true); }} className="bg-blue-50/40 p-3.5 rounded-2xl flex items-center gap-3 cursor-pointer active:scale-95 transition-all border border-blue-100/30">
                   <div className="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm">
                     <i className="fa-solid fa-route text-xs"></i>
                   </div>
@@ -479,7 +481,7 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       {isMoveModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fadeIn">
           <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setIsMoveModalOpen(false)}></div>
-          <div className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-slideUp text-center">
+          <div className="relative w-full max-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-slideUp text-center">
             <h4 className="text-xl font-black text-gray-800 mb-6">移動到哪一天？</h4>
             <div className="grid grid-cols-3 gap-3 max-h-80 overflow-y-auto p-2 no-scrollbar">
                {daysArray.map(d => {
@@ -664,18 +666,28 @@ const PlannerView: React.FC<PlannerViewProps> = ({ selectedTrip, onUpdate }) => 
       )}
 
       {isDayEditOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 animate-fadeIn text-center">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-fadeIn text-center">
            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setIsDayEditOpen(false)}></div>
-           <div className="relative w-full max-sm bg-white rounded-[3rem] p-10 shadow-2xl scale-in">
-              <h4 className="text-xl font-black text-gray-800 mb-8">Day {activeDay} 設定</h4>
+           <div className="relative w-full max-sm bg-white rounded-[3rem] p-10 shadow-2xl scale-in border border-white">
+              <h4 className="text-xl font-black text-gray-800 mb-8 tracking-tighter">Day {activeDay} 設定</h4>
               <div className="space-y-6 text-left">
                  <div>
                     <label className="text-[10px] font-black text-stone-300 uppercase block mb-2 tracking-widest">主要交通方式</label>
-                    <input autoFocus defaultValue={currentDayPlan.transportMode} placeholder="例如：地鐵、租車自駕" className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-black text-sm border-none focus:ring-2 focus:ring-[#00A5BF] outline-none"
-                           onChange={e => handleUpdateDayPlan({ transportMode: e.target.value })} />
+                    <input 
+                      autoFocus 
+                      value={tempTransport} 
+                      placeholder="例如：地鐵、租車自駕" 
+                      className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-black text-sm border-none focus:ring-2 focus:ring-[#00A5BF] outline-none shadow-inner"
+                      onChange={e => setTempTransport(e.target.value)} 
+                    />
                  </div>
               </div>
-              <button onClick={() => setIsDayEditOpen(false)} className="w-full mt-10 bg-[#00A5BF] text-white py-5 rounded-2xl font-black text-sm shadow-xl cursor-pointer uppercase tracking-widest">儲存</button>
+              <button 
+                onClick={() => { handleUpdateDayPlan({ transportMode: tempTransport }); setIsDayEditOpen(false); }} 
+                className="w-full mt-10 bg-[#00A5BF] text-white py-5 rounded-2xl font-black text-sm shadow-xl cursor-pointer uppercase tracking-widest active:scale-95 transition-all"
+              >
+                儲存設定
+              </button>
            </div>
         </div>
       )}
